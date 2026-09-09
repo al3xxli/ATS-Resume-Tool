@@ -1,68 +1,143 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { ResumeData } from '@/types/resume';
+import { alexLiOriginalResume } from '@/data/defaultResume';
+import { sampleJobs } from '@/data/sampleJobs';
+import { analyzeJobKeywords } from '@/utils/keywordEngine';
+import { runAtsAudit } from '@/utils/atsAudit';
+import { generateAtsPlainText } from '@/utils/plaintextGenerator';
+import { Header } from '@/components/Header';
+import { JobPanel } from '@/components/JobPanel';
+import { ResumePreview } from '@/components/ResumePreview';
+import { ResumeEditor } from '@/components/ResumeEditor';
+import { AtsAuditView } from '@/components/AtsAuditView';
+import { Check, Info, Briefcase, Eye, Sliders, ShieldCheck } from 'lucide-react';
 
 export default function Home() {
+  const [resume, setResume] = useState<ResumeData>(() =>
+    JSON.parse(JSON.stringify(alexLiOriginalResume))
+  );
+  const [jobDescription, setJobDescription] = useState<string>(
+    () => sampleJobs[0].description
+  );
+  const [activeTab, setActiveTab] = useState<'preview' | 'editor' | 'audit'>('preview');
+  const [mobileView, setMobileView] = useState<'job' | 'resume'>('resume');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Analyze keywords dynamically
+  const jobAnalysis = useMemo(() => {
+    return analyzeJobKeywords(jobDescription, resume);
+  }, [jobDescription, resume]);
+
+  // Run ATS audit dynamically
+  const auditResult = useMemo(() => {
+    return runAtsAudit(resume, resume.targetJobTitle, jobAnalysis.matchedCount);
+  }, [resume, jobAnalysis.matchedCount]);
+
+  // Toast feedback helper
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
+  // Copy plain text to clipboard
+  const handleCopyPlaintext = async () => {
+    try {
+      const text = generateAtsPlainText(resume);
+      await navigator.clipboard.writeText(text);
+      showToast('ATS Plaintext copied to clipboard! Ready to paste into application forms.');
+    } catch (err) {
+      showToast('Could not copy to clipboard. Please allow clipboard permissions.');
+    }
+  };
+
+  // Trigger browser print
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen flex flex-col bg-zinc-100 text-zinc-900">
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-zinc-900 text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-xl flex items-center space-x-2 border border-zinc-700 animate-in fade-in slide-in-from-bottom-2">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      )}
+
+      {/* Top Navigation */}
+      <Header
+        resume={resume}
+        atsScore={auditResult.overallScore}
+        onCopyPlaintext={handleCopyPlaintext}
+        onPrint={handlePrint}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
+
+      {/* Mobile view switcher */}
+      <div className="lg:hidden bg-white border-b border-zinc-200 px-4 py-2 flex items-center justify-between">
+        <div className="flex bg-zinc-100 p-1 rounded-lg text-xs w-full">
+          <button
+            onClick={() => setMobileView('job')}
+            className={`flex-1 py-1.5 rounded-md font-medium text-center transition-all ${
+              mobileView === 'job'
+                ? 'bg-white text-zinc-900 shadow-2xs font-semibold'
+                : 'text-zinc-600'
+            }`}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Job & Keywords ({jobAnalysis.matchedCount})
+          </button>
+          <button
+            onClick={() => setMobileView('resume')}
+            className={`flex-1 py-1.5 rounded-md font-medium text-center transition-all ${
+              mobileView === 'resume'
+                ? 'bg-white text-zinc-900 shadow-2xs font-semibold'
+                : 'text-zinc-600'
+            }`}
           >
-            Documentation
-          </a>
+            Resume & Audit
+          </button>
         </div>
+      </div>
+
+      {/* Main Dual Panel Layout */}
+      <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+        {/* Left Panel: Target Job & Keyword Engine */}
+        <aside
+          className={`w-full lg:w-[420px] xl:w-[460px] h-full shrink-0 ${
+            mobileView === 'job' ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          <JobPanel
+            resume={resume}
+            setResume={setResume}
+            jobDescription={jobDescription}
+            setJobDescription={setJobDescription}
+            jobAnalysis={jobAnalysis}
+          />
+        </aside>
+
+        {/* Right Panel: Live Resume Preview / Editor / Forensic Audit */}
+        <section
+          className={`flex-1 h-full overflow-hidden ${
+            mobileView === 'resume' ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          {activeTab === 'preview' && (
+            <ResumePreview resume={resume} jobAnalysis={jobAnalysis} />
+          )}
+          {activeTab === 'editor' && (
+            <ResumeEditor resume={resume} setResume={setResume} />
+          )}
+          {activeTab === 'audit' && (
+            <AtsAuditView resume={resume} matchedCount={jobAnalysis.matchedCount} />
+          )}
+        </section>
       </main>
     </div>
   );
