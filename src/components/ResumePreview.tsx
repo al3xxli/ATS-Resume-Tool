@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ResumeData, JobAnalysisResult } from '@/types/resume';
-import { Eye, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
+import { Eye, FileCheck } from 'lucide-react';
 
 interface ResumePreviewProps {
   resume: ResumeData;
@@ -11,241 +11,175 @@ interface ResumePreviewProps {
 
 export const ResumePreview: React.FC<ResumePreviewProps> = ({
   resume,
-  jobAnalysis,
 }) => {
-  const [highlightKeywords, setHighlightKeywords] = useState(true);
-
-  // Set of matched keyword strings in lowercase for quick highlight
-  const matchedSet = new Set(
-    jobAnalysis.keywords
-      .filter((k) => k.matched)
-      .map((k) => k.keyword.toLowerCase())
-  );
-
-  // Helper to highlight words if enabled
-  const renderTextWithHighlights = (text: string) => {
-    if (!highlightKeywords || matchedSet.size === 0) {
-      return text;
-    }
-
-    // Sort keywords by length descending so multi-word terms match first
-    const sortedTerms = Array.from(matchedSet).sort((a, b) => b.length - a.length);
-    const pattern = new RegExp(
-      `\\b(${sortedTerms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
-      'gi'
-    );
-
-    const parts = text.split(pattern);
-    return parts.map((part, i) => {
-      if (matchedSet.has(part.toLowerCase())) {
-        return (
-          <mark
-            key={i}
-            className="bg-emerald-100 text-emerald-950 px-1 py-0.2 rounded font-medium border-b border-emerald-300"
-            title={`Matched keyword: ${part}`}
-          >
-            {part}
-          </mark>
-        );
-      }
-      return part;
-    });
-  };
-
   return (
-    <div className="flex flex-col h-full bg-zinc-100 overflow-y-auto">
-      {/* Top preview control bar */}
-      <div className="bg-white px-6 py-2.5 border-b border-zinc-200 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+    <div className="flex flex-col h-full bg-zinc-200/60 overflow-y-auto">
+      {/* Top Preview Status Bar */}
+      <div className="bg-white px-5 py-2 border-b border-zinc-200 flex items-center justify-between sticky top-0 z-20 shadow-2xs no-print">
         <div className="flex items-center space-x-2">
-          <span className="inline-flex items-center text-xs font-semibold text-zinc-700">
-            <Eye className="w-3.5 h-3.5 mr-1 text-zinc-500" />
-            ATS Document Stream (Single-Column Preview)
+          <span className="inline-flex items-center text-xs font-semibold text-black">
+            <Eye className="w-3.5 h-3.5 mr-1 text-zinc-600" />
+            Letter Size (8.5&quot; × 11&quot;) — Single Page
           </span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-medium">
-            Calibri 11pt • 0.75&quot; Margins • No Scrambling
+          <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 font-mono">
+            Calibri • Black on White • Single Column
           </span>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <label className="flex items-center space-x-1.5 text-xs text-zinc-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={highlightKeywords}
-              onChange={(e) => setHighlightKeywords(e.target.checked)}
-              className="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 border-zinc-300"
-            />
-            <span className="font-medium text-xs">Highlight Matched Keywords</span>
-          </label>
+        <div className="flex items-center space-x-2 text-xs text-zinc-600 font-medium">
+          <FileCheck className="w-3.5 h-3.5 text-black" />
+          <span>Strict 1-Page ATS Standard</span>
         </div>
       </div>
 
-      {/* Document Sheet Container */}
-      <div className="p-6 md:p-10 flex justify-center">
+      {/* Document Sheet Container (Calibrated strictly for Letter size single page) */}
+      <div className="p-4 md:p-8 flex justify-center items-start flex-1">
         <div
           id="printable-resume"
-          className="w-full max-w-[820px] bg-white shadow-md border border-zinc-200 rounded-sm p-8 md:p-12 text-zinc-900 font-sans"
-          style={{ fontFamily: 'Calibri, Arial, sans-serif' }}
+          className="w-full max-w-[800px] bg-white shadow-sm border border-zinc-300 p-8 md:p-10 text-black font-sans leading-snug"
+          style={{
+            fontFamily: 'Calibri, Arial, sans-serif',
+            color: '#000000',
+            backgroundColor: '#ffffff',
+          }}
         >
-          {/* Header Block: Name & Target Title */}
-          <div className="text-center pb-4 mb-4 border-b border-zinc-300">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-950 uppercase">
+          {/* Header: Name, Target Job Title, Contact Info */}
+          <div className="text-center pb-2 mb-2 border-b border-black">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-black uppercase m-0 p-0">
               {resume.name}
             </h1>
 
-            {/* Target Job Title (10.6x factor) */}
+            {/* Target Job Title (10.6x Factor, Black) */}
             {resume.targetJobTitle && (
-              <div className="mt-1 flex items-center justify-center space-x-2">
-                <span className="text-sm md:text-base font-bold text-blue-700 uppercase tracking-wide">
-                  {resume.targetJobTitle}
-                </span>
-                <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                  <Sparkles className="w-2.5 h-2.5 mr-0.5" />
-                  10.6x Match
-                </span>
+              <div className="text-xs md:text-sm font-bold text-black uppercase tracking-wide mt-0.5">
+                {resume.targetJobTitle}
               </div>
             )}
 
-            {/* Contact Info (in body text) */}
-            <div className="text-xs text-zinc-600 mt-2 flex flex-wrap justify-center items-center gap-x-3 gap-y-1">
+            {/* Contact Info (Clean plain pipes) */}
+            <div className="text-[11px] text-black mt-1 flex flex-wrap justify-center items-center gap-x-2.5 gap-y-0.5">
               {resume.contact.phone && <span>{resume.contact.phone}</span>}
               {resume.contact.email && (
                 <>
-                  <span className="text-zinc-300">•</span>
+                  <span>|</span>
                   <span>{resume.contact.email}</span>
                 </>
               )}
               {resume.contact.linkedin && (
                 <>
-                  <span className="text-zinc-300">•</span>
+                  <span>|</span>
                   <span>{resume.contact.linkedin}</span>
                 </>
               )}
               {resume.contact.portfolio && (
                 <>
-                  <span className="text-zinc-300">•</span>
+                  <span>|</span>
                   <span>{resume.contact.portfolio}</span>
                 </>
               )}
               {resume.contact.location && (
                 <>
-                  <span className="text-zinc-300">•</span>
+                  <span>|</span>
                   <span>{resume.contact.location}</span>
                 </>
               )}
             </div>
           </div>
 
-          {/* Professional Summary */}
+          {/* Professional Summary / Positioning Statement */}
           {resume.summary && (
-            <div className="mb-5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-900 border-b border-zinc-800 pb-0.5 mb-2">
-                Professional Summary
-              </h2>
-              <p className="text-[13px] text-zinc-700 leading-relaxed">
-                {renderTextWithHighlights(resume.summary)}
-              </p>
-            </div>
-          )}
-
-          {/* Professional Experience */}
-          {resume.experience && resume.experience.length > 0 && (
-            <div className="mb-5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-900 border-b border-zinc-800 pb-0.5 mb-2.5">
-                Professional Experience
-              </h2>
-              <div className="space-y-4">
-                {resume.experience.map((exp) => (
-                  <div key={exp.id}>
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-zinc-900 text-[13px]">{exp.company}</span>
-                        <span className="text-zinc-600 italic ml-1.5">— {exp.location}</span>
-                      </div>
-                      <span className="text-zinc-700 font-semibold mt-0.5 sm:mt-0">
-                        {exp.dateRange}
-                      </span>
-                    </div>
-                    <div className="text-xs font-semibold text-blue-700 mb-1.5">
-                      {renderTextWithHighlights(exp.role)}
-                    </div>
-                    <ul className="list-disc list-outside pl-4 space-y-1 text-xs text-zinc-700">
-                      {exp.highlights.map((bullet, idx) => (
-                        <li key={idx} className="leading-relaxed">
-                          {renderTextWithHighlights(bullet)}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Selected Projects */}
-          {resume.projects && resume.projects.length > 0 && (
-            <div className="mb-5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-900 border-b border-zinc-800 pb-0.5 mb-2.5">
-                Technical & Design Projects
-              </h2>
-              <div className="space-y-4">
-                {resume.projects.map((proj) => (
-                  <div key={proj.id}>
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between text-xs">
-                      <span className="font-bold text-zinc-900 text-[13px]">
-                        {renderTextWithHighlights(proj.name)}
-                      </span>
-                      <span className="text-zinc-700 font-semibold mt-0.5 sm:mt-0">
-                        {proj.dateRange}
-                      </span>
-                    </div>
-                    {proj.subtitle && (
-                      <div className="text-xs italic text-zinc-600 mb-1">
-                        {renderTextWithHighlights(proj.subtitle)}
-                      </div>
-                    )}
-                    {proj.awards && (
-                      <div className="text-[11px] font-medium text-emerald-800 bg-emerald-50/70 px-2 py-0.5 rounded mb-1.5 border border-emerald-100">
-                        Awards: {proj.awards}
-                      </div>
-                    )}
-                    <ul className="list-disc list-outside pl-4 space-y-1 text-xs text-zinc-700">
-                      {proj.highlights.map((bullet, idx) => (
-                        <li key={idx} className="leading-relaxed">
-                          {renderTextWithHighlights(bullet)}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+            <div className="text-[11px] text-black text-center mb-2.5 leading-normal">
+              {resume.summary}
             </div>
           )}
 
           {/* Education */}
           {resume.education && resume.education.length > 0 && (
-            <div className="mb-5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-900 border-b border-zinc-800 pb-0.5 mb-2.5">
-                Education
+            <div className="mb-2.5">
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+                EDUCATION
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-1 text-[11px]">
                 {resume.education.map((edu) => (
                   <div key={edu.id}>
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between text-xs">
-                      <span className="font-bold text-zinc-900 text-[13px]">{edu.institution}</span>
-                      <span className="text-zinc-700 font-semibold mt-0.5 sm:mt-0">
-                        {edu.dateRange}
-                      </span>
+                    <div className="flex justify-between items-baseline text-black">
+                      <div>
+                        <span className="font-bold text-black">{edu.institution}</span>
+                        <span className="italic text-black"> — {edu.degree}</span>
+                      </div>
+                      <span className="font-bold text-black shrink-0 ml-2">{edu.dateRange}</span>
                     </div>
-                    <div className="text-xs font-semibold text-blue-700 mb-1">
-                      {renderTextWithHighlights(edu.degree)}
+                    {edu.details.map((detail, idx) => (
+                      <div key={idx} className="text-[10.5px] text-black pl-3 relative">
+                        <span className="absolute left-0 top-0">•</span>
+                        <span>{detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Projects */}
+          {resume.projects && resume.projects.length > 0 && (
+            <div className="mb-2.5">
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+                PROJECTS
+              </h2>
+              <div className="space-y-1.5 text-[11px]">
+                {resume.projects.map((proj) => (
+                  <div key={proj.id}>
+                    <div className="flex justify-between items-baseline text-black">
+                      <div>
+                        <span className="font-bold text-black">{proj.name}</span>
+                        <span className="italic text-black"> — {proj.subtitle}</span>
+                      </div>
+                      <span className="font-bold text-black shrink-0 ml-2">{proj.dateRange}</span>
                     </div>
-                    <ul className="list-disc list-outside pl-4 space-y-0.5 text-xs text-zinc-700">
-                      {edu.details.map((detail, idx) => (
-                        <li key={idx} className="leading-relaxed">
-                          {renderTextWithHighlights(detail)}
-                        </li>
+                    {proj.awards && (
+                      <div className="text-[10.5px] italic text-black pl-3">
+                        Awards: {proj.awards}
+                      </div>
+                    )}
+                    <div className="space-y-0.5 mt-0.5">
+                      {proj.highlights.map((bullet, idx) => (
+                        <div key={idx} className="text-[10.5px] text-black pl-3 relative leading-snug">
+                          <span className="absolute left-0 top-0">•</span>
+                          <span>{bullet}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Professional Experience */}
+          {resume.experience && resume.experience.length > 0 && (
+            <div className="mb-2.5">
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+                PROFESSIONAL EXPERIENCE
+              </h2>
+              <div className="space-y-1.5 text-[11px]">
+                {resume.experience.map((exp) => (
+                  <div key={exp.id}>
+                    <div className="flex justify-between items-baseline text-black">
+                      <div>
+                        <span className="font-bold text-black">{exp.company}</span>
+                        <span className="italic text-black"> — {exp.role}, {exp.location}</span>
+                      </div>
+                      <span className="font-bold text-black shrink-0 ml-2">{exp.dateRange}</span>
+                    </div>
+                    <div className="space-y-0.5 mt-0.5">
+                      {exp.highlights.map((bullet, idx) => (
+                        <div key={idx} className="text-[10.5px] text-black pl-3 relative leading-snug">
+                          <span className="absolute left-0 top-0">•</span>
+                          <span>{bullet}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -254,28 +188,21 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
 
           {/* Technical Skills */}
           {resume.skills && resume.skills.length > 0 && (
-            <div className="mb-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-900 border-b border-zinc-800 pb-0.5 mb-2.5">
-                Technical Skills
+            <div>
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+                TECHNICAL SKILLS
               </h2>
-              <div className="space-y-1.5 text-xs text-zinc-800">
+              <div className="space-y-0.5 text-[10.5px] text-black leading-snug">
                 {resume.skills.map((cat, idx) => (
-                  <div key={idx} className="leading-relaxed">
-                    <span className="font-bold text-zinc-900">{cat.category}: </span>
-                    <span className="text-zinc-700">
-                      {cat.items.map((item, i) => (
-                        <React.Fragment key={i}>
-                          {i > 0 && ', '}
-                          {renderTextWithHighlights(item)}
-                        </React.Fragment>
-                      ))}
-                    </span>
+                  <div key={idx}>
+                    <span className="font-bold text-black">{cat.category}: </span>
+                    <span className="text-black">{cat.items.join(', ')}</span>
                   </div>
                 ))}
                 {resume.languages && resume.languages.length > 0 && (
-                  <div className="pt-1">
-                    <span className="font-bold text-zinc-900">Languages: </span>
-                    <span className="text-zinc-700">{resume.languages.join(', ')}</span>
+                  <div>
+                    <span className="font-bold text-black">Languages: </span>
+                    <span className="text-black">{resume.languages.join(', ')}</span>
                   </div>
                 )}
               </div>

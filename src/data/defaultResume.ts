@@ -2,37 +2,35 @@ import { ResumeData } from '@/types/resume';
 
 export const alexLiOriginalResume: ResumeData = {
   name: 'ALEX LI',
-  targetJobTitle: 'Hardware Product Designer', // Matches job application title per 10.6x rule
+  targetJobTitle: 'HARDWARE PRODUCT DESIGNER',
   summary:
-    'Architecture-trained product designer focused on physical products, human use, and material exploration. Experienced in taking products from concept and form development through prototyping, electronics, and digital fabrication.',
+    'Architecture-trained product designer focused on physical products, human use, and material exploration. Experienced taking products from concept and form development through rapid prototyping, electronics, and digital fabrication.',
   contact: {
     phone: '+1 825 983 4291',
     email: 'a368li@berkeley.edu',
     linkedin: 'linkedin.com/in/al3xx-li',
-    portfolio: 'al3xx.li',
+    portfolio: 'www.al3xx.li',
     location: 'Berkeley, CA',
   },
   education: [
     {
       id: 'edu-1',
       institution: 'University of California, Berkeley',
-      degree: "Master's of Design (Design for Emerging Technologies)",
+      degree: "Master's of Design — Design for Emerging Technologies",
       location: 'Berkeley, CA',
       dateRange: 'Aug 2026 - Dec 2027',
       details: [
-        'College of Engineering and College of Environmental Design.',
-        'Available Full-Time January 2028.',
+        'College of Engineering and College of Environmental Design. Available Full-Time Jan 2028.',
       ],
     },
     {
       id: 'edu-2',
       institution: 'University of Waterloo',
       degree: 'Bachelor of Architectural Studies',
-      location: 'Waterloo, ON, Canada',
+      location: 'Waterloo, ON',
       dateRange: 'Sep 2021 - Aug 2026',
       details: [
-        'Graduated with Honours, Term Distinctions.',
-        'Recipient of 6 academic/merit-based awards and 3 leadership awards.',
+        'Graduated with Honours, Term Distinctions. Recipient of 6 academic/merit-based awards and 3 leadership awards.',
       ],
     },
   ],
@@ -42,11 +40,11 @@ export const alexLiOriginalResume: ResumeData = {
       company: 'DIALOG',
       role: 'Architectural Intern, Computational Design',
       location: 'Calgary, AB, Canada',
-      dateRange: 'Jan 2026 - Apr 2026',
+      dateRange: 'Jan 2026 - Apr 2026 & Jan 2025 - Apr 2025',
       highlights: [
-        'Took over as Acting Computational Design Lead on the Red Deer Regional Hospital facade after senior technician departed mid-project.',
-        'Reverse-engineered parametric Grasshopper script to be 62% more efficient, allowing direct manipulation by team members with basic Grasshopper familiarity.',
-        'Specialized in Science & Technology and Aviation typologies; engineered designs for human-robot interactions in closed-loop systems.',
+        'Took over as Acting Computational Design Lead on Red Deer Regional Hospital facade after technician left mid-project.',
+        'Reverse-engineered Grasshopper script to be 62% more efficient and operable by anyone with basic Grasshopper familiarity.',
+        'Specialized in Science & Technology, Aviation Typologies; design for human-robot interactions in closed loop systems.',
       ],
     },
     {
@@ -56,8 +54,7 @@ export const alexLiOriginalResume: ResumeData = {
       location: 'Calgary, AB, Canada',
       dateRange: 'May 2025 - Aug 2025',
       highlights: [
-        'Directed cross-team coordination and management to revamp and publish complete drawing packages for 18 flagship residential projects.',
-        'Streamlined multi-disciplinary CAD and BIM standards to reduce design review revisions by 25%.',
+        'Directed cross-team coordination and management to revamp and publish drawing sets for 18 flagship residential projects.',
       ],
     },
     {
@@ -67,8 +64,7 @@ export const alexLiOriginalResume: ResumeData = {
       location: 'Toronto, ON, Canada',
       dateRange: 'May 2024 - Aug 2024',
       highlights: [
-        'Convinced Principals to retain 3D visualization for inaugural healthcare project in-house by developing an AI-assisted rendering workflow to reduce external overhead.',
-        'Delivered high-fidelity architectural renders under tight deadlines; final deliverables drew direct client commendation.',
+        'Convinced Principals to keep visualization of inaugural healthcare project in-house by developing an AI-assisted rendering workflow to reduce overhead and maintain design agency; results drew direct client praise.',
       ],
     },
     {
@@ -78,7 +74,7 @@ export const alexLiOriginalResume: ResumeData = {
       location: 'Vancouver, BC, Canada',
       dateRange: 'Sep 2023 - Dec 2023',
       highlights: [
-        'Carried schematic design through development-permit submission as part of a 4-person team in under 4 months, achieving the fastest permit progression in firm history.',
+        'Carried schematic design to development-permit submission as part of team of four in under four months as the fastest progression the firm had achieved.',
       ],
     },
   ],
@@ -89,9 +85,8 @@ export const alexLiOriginalResume: ResumeData = {
       subtitle: 'Split Ergonomic Keyboard, 42 Keys, Designed and Built from Scratch',
       dateRange: 'Jan 2025 - May 2025',
       highlights: [
-        'Designed and engineered a 42-key split ergonomic keyboard centered on sustained-use comfort, human ergonomics, and high typing throughput.',
-        'Iterated rapidly through 3D printing and rigorous user testing; achieved +43% typing speed and +18% accuracy relative to an 87-key baseline.',
-        'Completed full hardware stack including PCB schematic in KiCAD, Ergogen layout, SMD hand-soldering, and custom firmware flashing.',
+        'Designed and built a 42-key split ergonomic keyboard centered on sustained-use comfort and typing performance.',
+        'Iterated with 3D-printing and user testing; achieved +43% typing speed and +18% accuracy against an 87-key baseline.',
       ],
     },
     {
@@ -101,32 +96,32 @@ export const alexLiOriginalResume: ResumeData = {
       awards: 'UWaterloo Outstanding Design Award | BDP Quadrangle Digital Fabrication Award | Riverside Gallery Feature',
       dateRange: 'Jun 2024 - Dec 2024',
       highlights: [
-        'Developed robust Human-In-The-Loop AI framework and workflow to generate, simulate, and validate complex auxetic geometric lattices.',
-        'Physically prototyped using multi-material FDM 3D printing, laser-cutting, and precision CNC fabrication across elastomeric and rigid polymers.',
+        'Developed robust Human-In-The-Loop AI framework and workflow to generate and validate complex geometries.',
+        'Physically prototyped with 3D Printing, Laser-cutting, and precision cutting across a variety of materials.',
       ],
     },
   ],
   skills: [
     {
       category: 'Digital Fabrication',
-      items: ['FDM 3D Printing (PLA, TPU, multi-material)', 'Laser-cutting', 'Precision CNC Cutting', 'Rapid Prototyping', 'Design for Manufacturing (DFM)'],
+      items: ['FDM 3D Printing (PLA, TPU, multi-material)', 'Laser-cutting', 'Precision-cutting', 'DFM Rapid Prototyping'],
     },
     {
-      category: '3D & CAD Modeling',
-      items: ['Rhino 3D', 'Grasshopper (Parametric Modeling)', 'Revit (BIM)', 'AutoCAD', 'SolidWorks', 'Surface Modeling'],
+      category: '3D & CAD',
+      items: ['Rhino 3D', 'Grasshopper', 'Revit', 'AutoCAD', 'SolidWorks'],
     },
     {
       category: 'Electronics & Hardware',
-      items: ['KiCAD', 'Ergogen', 'PCB Design', 'SMD Hand-Soldering', 'Microcontrollers (Arduino/RP2040)', 'Firmware Configuration'],
+      items: ['KiCAD', 'Ergogen', 'SMD Hand-Soldering', 'Python', 'PCB Design', 'Microcontrollers'],
     },
     {
-      category: 'AI & Computational Workflows',
-      items: ['Python Scripting', 'Local LLM Scripting (LMStudio, Ollama)', 'ComfyUI Node Graphs', 'Stable Diffusion', 'Human-in-the-Loop AI'],
+      category: 'AI & Computational',
+      items: ['Local Scripting (LMStudio, Ollama)', 'ComfyUI', 'Stable Diffusion', 'Human-in-the-Loop AI'],
     },
     {
-      category: '2D & Visualization',
-      items: ['Adobe Creative Suite (Photoshop, Illustrator, InDesign)', 'Figma', 'Twinmotion', 'DaVinci Resolve', 'Technical Documentation'],
+      category: '2D & Visual',
+      items: ['Adobe Creative Suite', 'Figma', 'Twinmotion', 'DaVinci Resolve'],
     },
   ],
-  languages: ['English (Fluent)', 'Mandarin Chinese (Native)'],
+  languages: ['English', 'Mandarin Chinese'],
 };

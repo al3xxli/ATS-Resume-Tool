@@ -298,26 +298,17 @@ export function alignResumeWithJob(
     return { ...category, items: newItems };
   });
 
-  // If there are general domain keywords, add to a "Methodologies & Domain Knowledge" category
-  if (generalSkills.length > 0) {
-    const existingDomainCat = updated.skills.find((s) =>
-      s.category.toLowerCase().includes('methodolog')
-    );
-    if (existingDomainCat) {
-      generalSkills.forEach((s) => {
-        if (!existingDomainCat.items.includes(s)) existingDomainCat.items.push(s);
-      });
-    } else {
-      updated.skills.push({
-        category: 'Methodologies & Core Competencies',
-        items: generalSkills,
-      });
-    }
+  // If there are general domain keywords, merge into first category without adding extra lines
+  if (generalSkills.length > 0 && updated.skills.length > 0) {
+    const targetCat = updated.skills[0];
+    generalSkills.forEach((s) => {
+      if (!targetCat.items.includes(s)) targetCat.items.push(s);
+    });
   }
 
-  // Update summary to naturally reflect the exact target title
+  // Update summary concisely to include target title while fitting single page
   if (!updated.summary.toLowerCase().includes(updated.targetJobTitle.toLowerCase())) {
-    updated.summary = `${updated.targetJobTitle} with deep expertise in physical product development, human-centered interaction, and rapid digital fabrication. Proven track record taking complex projects from initial concept through CAD modeling, functional prototyping, and manufacturing readiness.`;
+    updated.summary = `${updated.targetJobTitle} focused on physical products, human use, and material exploration. Experienced taking products from concept through rapid prototyping, electronics, and digital fabrication.`;
   }
 
   return updated;
