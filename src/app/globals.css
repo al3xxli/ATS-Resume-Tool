@@ -43,12 +43,15 @@ body {
   #printable-resume {
     box-shadow: none !important;
     border: none !important;
-    padding: 0.5in !important;
+    padding: 0.6in 0.65in !important;
     margin: 0 !important;
     width: 8.5in !important;
     height: 11in !important;
     max-width: 8.5in !important;
     max-height: 11in !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     transform: none !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;

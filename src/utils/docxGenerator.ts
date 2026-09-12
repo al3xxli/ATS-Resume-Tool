@@ -12,26 +12,102 @@ import { ResumeData } from '@/types/resume';
 export type AllowedFont = 'Calibri' | 'Arial' | 'Times New Roman';
 
 /**
- * Creates an ATS-compliant Word document (.docx) adhering to professional styling guidelines:
- * - Classic, professional font (Calibri, Arial, or Times New Roman)
- * - Headings: 12pt bold for clear hierarchy
- * - Body / Bullets: 10pt font for comfortable readability and white space
- * - Margins: 0.7" (1008 twips) for balanced, clean layout without overcrowding
- * - Line Spacing: 1.15 (line: 276)
+ * Computes smart vertical spacing parameters based on content density:
+ * Ensures the resume fills the Letter page gracefully to avoid a large bottom gap
+ * (bottom space strictly no more than 1/10th of the 11in page),
+ * while dynamically scaling to guarantee it never overflows onto page 2.
+ */
+function calculateSmartSpacing(resume: ResumeData) {
+  // Count total bullet points and entries
+  const eduBullets = resume.education.reduce((acc, e) => acc + e.details.length, 0);
+  const projBullets = resume.projects.reduce((acc, p) => acc + p.highlights.length, 0);
+  const expBullets = resume.experience.reduce((acc, e) => acc + e.highlights.length, 0);
+  const skillsCount = resume.skills.length + (resume.languages.length > 0 ? 1 : 0);
+  const totalItems =
+    resume.education.length +
+    resume.projects.length +
+    resume.experience.length +
+    eduBullets +
+    projBullets +
+    expBullets +
+    skillsCount;
+
+  // If content is concise (e.g. <= 30 elements), expand spacing to fill the page
+  if (totalItems <= 26) {
+    return {
+      topMargin: 864, // 0.6 in
+      bottomMargin: 864, // 0.6 in
+      sideMargin: 936, // 0.65 in
+      lineSpacing: 310, // ~1.3 line spacing (improves white space)
+      nameAfter: 60,
+      titleAfter: 70,
+      contactAfter: 130,
+      summaryAfter: 200,
+      sectionBefore: 280,
+      sectionAfter: 90,
+      itemBefore: 150,
+      itemAfter: 45,
+      bulletAfter: 65,
+      skillAfter: 65,
+    };
+  } else if (totalItems <= 32) {
+    return {
+      topMargin: 864,
+      bottomMargin: 864,
+      sideMargin: 936,
+      lineSpacing: 290, // ~1.2 line spacing
+      nameAfter: 40,
+      titleAfter: 50,
+      contactAfter: 100,
+      summaryAfter: 160,
+      sectionBefore: 220,
+      sectionAfter: 70,
+      itemBefore: 120,
+      itemAfter: 35,
+      bulletAfter: 45,
+      skillAfter: 45,
+    };
+  } else {
+    // Dense content: compact spacing to protect 1-page boundary
+    return {
+      topMargin: 720, // 0.5 in
+      bottomMargin: 720,
+      sideMargin: 864, // 0.6 in
+      lineSpacing: 276, // 1.15 line spacing
+      nameAfter: 30,
+      titleAfter: 40,
+      contactAfter: 80,
+      summaryAfter: 120,
+      sectionBefore: 160,
+      sectionAfter: 50,
+      itemBefore: 90,
+      itemAfter: 25,
+      bulletAfter: 30,
+      skillAfter: 30,
+    };
+  }
+}
+
+/**
+ * Creates an ATS-compliant Word document (.docx) adhering to styling guidelines with smart spacing:
+ * - Fills the page to avoid a large bottom gap (bottom margin <= 1/10th page)
  * - Strict 1-page Letter fit
+ * - Classic, professional font (Calibri, Arial, or Times New Roman)
+ * - 12pt bold section headings
+ * - 10pt body text & bullets
  * - 100% Black text on pure white background
- * - Consistent styling across all similar elements
  */
 export async function generateAtsDocx(
   resume: ResumeData,
   fontFamily: AllowedFont = 'Calibri'
 ): Promise<Blob> {
   const children: Paragraph[] = [];
+  const spacing = calculateSmartSpacing(resume);
 
   // Helper for section headings (12pt Bold Uppercase with bottom border)
   const createSectionHeader = (title: string) => {
     return new Paragraph({
-      spacing: { before: 120, after: 40 },
+      spacing: { before: spacing.sectionBefore, after: spacing.sectionAfter },
       border: {
         bottom: {
           color: '000000',
@@ -56,7 +132,7 @@ export async function generateAtsDocx(
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 20 },
+      spacing: { before: 0, after: spacing.nameAfter },
       children: [
         new TextRun({
           text: resume.name.toUpperCase(),
@@ -74,7 +150,7 @@ export async function generateAtsDocx(
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 30 },
+        spacing: { after: spacing.titleAfter },
         children: [
           new TextRun({
             text: resume.targetJobTitle.toUpperCase(),
@@ -99,7 +175,7 @@ export async function generateAtsDocx(
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 60 },
+      spacing: { after: spacing.contactAfter },
       children: [
         new TextRun({
           text: contactParts.join('  |  '),
@@ -111,7 +187,7 @@ export async function generateAtsDocx(
     })
   );
 
-  // 4. Concise Summary / Positioning Statement (10pt, 1.15 line spacing, line-sensitive)
+  // 4. Concise Summary / Positioning Statement (10pt, line-sensitive)
   if (resume.summary) {
     const summaryLines = resume.summary.split('\n');
     const summaryChildren: TextRun[] = [];
@@ -133,7 +209,7 @@ export async function generateAtsDocx(
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 80, line: 276 },
+        spacing: { after: spacing.summaryAfter, line: spacing.lineSpacing },
         children: summaryChildren,
       })
     );
@@ -146,7 +222,7 @@ export async function generateAtsDocx(
     resume.education.forEach((edu) => {
       children.push(
         new Paragraph({
-          spacing: { before: 50, after: 15 },
+          spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
           children: [
             new TextRun({
               text: edu.institution,
@@ -176,7 +252,7 @@ export async function generateAtsDocx(
         children.push(
           new Paragraph({
             bullet: { level: 0 },
-            spacing: { after: 15, line: 276 },
+            spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
             children: [
               new TextRun({
                 text: detail,
@@ -198,7 +274,7 @@ export async function generateAtsDocx(
     resume.projects.forEach((proj) => {
       children.push(
         new Paragraph({
-          spacing: { before: 50, after: 15 },
+          spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
           children: [
             new TextRun({
               text: proj.name,
@@ -227,7 +303,7 @@ export async function generateAtsDocx(
       if (proj.awards) {
         children.push(
           new Paragraph({
-            spacing: { after: 15 },
+            spacing: { after: spacing.itemAfter },
             children: [
               new TextRun({
                 text: `Awards: ${proj.awards}`,
@@ -245,7 +321,7 @@ export async function generateAtsDocx(
         children.push(
           new Paragraph({
             bullet: { level: 0 },
-            spacing: { after: 15, line: 276 },
+            spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
             children: [
               new TextRun({
                 text: bullet,
@@ -267,7 +343,7 @@ export async function generateAtsDocx(
     resume.experience.forEach((exp) => {
       children.push(
         new Paragraph({
-          spacing: { before: 50, after: 15 },
+          spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
           children: [
             new TextRun({
               text: exp.company,
@@ -297,7 +373,7 @@ export async function generateAtsDocx(
         children.push(
           new Paragraph({
             bullet: { level: 0 },
-            spacing: { after: 15, line: 276 },
+            spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
             children: [
               new TextRun({
                 text: bullet,
@@ -319,7 +395,7 @@ export async function generateAtsDocx(
     resume.skills.forEach((skillGroup) => {
       children.push(
         new Paragraph({
-          spacing: { after: 15, line: 276 },
+          spacing: { after: spacing.skillAfter, line: spacing.lineSpacing },
           children: [
             new TextRun({
               text: `${skillGroup.category}: `,
@@ -342,7 +418,7 @@ export async function generateAtsDocx(
     if (resume.languages && resume.languages.length > 0) {
       children.push(
         new Paragraph({
-          spacing: { after: 15, line: 276 },
+          spacing: { after: spacing.skillAfter, line: spacing.lineSpacing },
           children: [
             new TextRun({
               text: 'Languages: ',
@@ -363,17 +439,17 @@ export async function generateAtsDocx(
     }
   }
 
-  // Single Letter Page configuration: 8.5" x 11" with balanced 0.7" margins (1008 twips)
+  // Single Letter Page configuration with Smart Spacing
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: 1008,
-              right: 1008,
-              bottom: 1008,
-              left: 1008,
+              top: spacing.topMargin,
+              right: spacing.sideMargin,
+              bottom: spacing.bottomMargin,
+              left: spacing.sideMargin,
             },
           },
         },

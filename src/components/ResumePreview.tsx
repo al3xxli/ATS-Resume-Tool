@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ResumeData, JobAnalysisResult } from '@/types/resume';
 import { AllowedFont } from '@/utils/docxGenerator';
-import { Eye, ZoomIn, ZoomOut, Type } from 'lucide-react';
+import { Eye, ZoomIn, ZoomOut, Type, Sparkles } from 'lucide-react';
 
 interface ResumePreviewProps {
   resume: ResumeData;
@@ -82,7 +82,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
             ))}
           </div>
           <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-100 text-zinc-600 hidden sm:inline font-mono">
-            Body 10pt • Headings 12pt • 0.7&quot; Margins
+            Smart Spacing • Filled 1-Page Letter
           </span>
         </div>
 
@@ -139,13 +139,13 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
           }}
           className="shrink-0 transition-transform duration-100 ease-out"
         >
-          {/* Strictly Fixed Letter Sheet: 8.5" x 11" with balanced 0.7" margins */}
+          {/* Strictly Fixed Letter Sheet with Smart Spacing (no more than 1/10th bottom margin) */}
           <div
             id="printable-resume"
             style={{
               width: '8.5in',
               height: '11in',
-              padding: '0.7in',
+              padding: '0.6in 0.65in',
               boxSizing: 'border-box',
               fontFamily: getCssFontFamily(fontFamily),
               color: '#000000',
@@ -153,10 +153,10 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               overflow: 'hidden',
               boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.1)',
             }}
-            className="text-black leading-[1.2] border border-zinc-300"
+            className="text-black leading-[1.28] border border-zinc-300 flex flex-col justify-between"
           >
-            {/* Header: Name (18pt bold), Target Job Title (12pt bold), Contact Info (10pt) */}
-            <div className="text-center pb-2 mb-2 border-b border-black">
+            {/* 1. Header: Name (18pt), Title (12pt), Contact (10pt), Summary (10pt) */}
+            <div className="text-center">
               <h1 className="text-[24px] font-bold tracking-tight text-black uppercase m-0 p-0 leading-tight">
                 {resume.name}
               </h1>
@@ -169,7 +169,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               )}
 
               {/* Contact Info (10pt / 13.3px) */}
-              <div className="text-[13px] text-black mt-1 flex flex-wrap justify-center items-center gap-x-2.5 gap-y-0.5">
+              <div className="text-[13px] text-black mt-1 flex flex-wrap justify-center items-center gap-x-2.5 gap-y-0.5 pb-2 border-b border-black">
                 {resume.contact.phone && <span>{resume.contact.phone}</span>}
                 {resume.contact.email && (
                   <>
@@ -196,22 +196,22 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                   </>
                 )}
               </div>
+
+              {/* Positioning Statement (10pt, line-sensitive) */}
+              {resume.summary && (
+                <div className="text-[13px] text-black text-center mt-2 leading-[1.26] whitespace-pre-line">
+                  {resume.summary}
+                </div>
+              )}
             </div>
 
-            {/* Positioning Statement (10pt, 1.15 line spacing, line-sensitive) */}
-            {resume.summary && (
-              <div className="text-[13px] text-black text-center mb-2.5 leading-[1.25] whitespace-pre-line">
-                {resume.summary}
-              </div>
-            )}
-
-            {/* Education (Headings: 12pt Bold Uppercase) */}
+            {/* 2. Education */}
             {resume.education && resume.education.length > 0 && (
-              <div className="mb-2.5">
-                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+              <div>
+                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   EDUCATION
                 </h2>
-                <div className="space-y-1 text-[13px]">
+                <div className="space-y-1.5 text-[13px]">
                   {resume.education.map((edu) => (
                     <div key={edu.id}>
                       <div className="flex justify-between items-baseline text-black">
@@ -222,7 +222,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                         <span className="text-black shrink-0 ml-2">{edu.dateRange}</span>
                       </div>
                       {edu.details.map((detail, idx) => (
-                        <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.2]">
+                        <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
                           <span className="absolute left-0 top-0">•</span>
                           <span>{detail}</span>
                         </div>
@@ -233,13 +233,13 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               </div>
             )}
 
-            {/* Projects (Headings: 12pt Bold Uppercase) */}
+            {/* 3. Projects */}
             {resume.projects && resume.projects.length > 0 && (
-              <div className="mb-2.5">
-                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+              <div>
+                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   PROJECTS
                 </h2>
-                <div className="space-y-1.5 text-[13px]">
+                <div className="space-y-2 text-[13px]">
                   {resume.projects.map((proj) => (
                     <div key={proj.id}>
                       <div className="flex justify-between items-baseline text-black">
@@ -250,13 +250,13 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                         <span className="text-black shrink-0 ml-2">{proj.dateRange}</span>
                       </div>
                       {proj.awards && (
-                        <div className="text-[12.5px] italic text-black pl-3.5">
+                        <div className="text-[12.5px] italic text-black pl-3.5 my-0.5">
                           Awards: {proj.awards}
                         </div>
                       )}
                       <div className="space-y-0.5 mt-0.5">
                         {proj.highlights.map((bullet, idx) => (
-                          <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.2]">
+                          <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
                             <span className="absolute left-0 top-0">•</span>
                             <span>{bullet}</span>
                           </div>
@@ -268,13 +268,13 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               </div>
             )}
 
-            {/* Professional Experience (Headings: 12pt Bold Uppercase) */}
+            {/* 4. Professional Experience */}
             {resume.experience && resume.experience.length > 0 && (
-              <div className="mb-2.5">
-                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+              <div>
+                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   PROFESSIONAL EXPERIENCE
                 </h2>
-                <div className="space-y-1.5 text-[13px]">
+                <div className="space-y-2 text-[13px]">
                   {resume.experience.map((exp) => (
                     <div key={exp.id}>
                       <div className="flex justify-between items-baseline text-black">
@@ -286,7 +286,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                       </div>
                       <div className="space-y-0.5 mt-0.5">
                         {exp.highlights.map((bullet, idx) => (
-                          <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.2]">
+                          <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
                             <span className="absolute left-0 top-0">•</span>
                             <span>{bullet}</span>
                           </div>
@@ -298,13 +298,13 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               </div>
             )}
 
-            {/* Technical Skills (Headings: 12pt Bold Uppercase) */}
+            {/* 5. Technical Skills */}
             {resume.skills && resume.skills.length > 0 && (
               <div>
-                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1">
+                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   TECHNICAL SKILLS
                 </h2>
-                <div className="space-y-0.5 text-[13px] text-black leading-[1.2]">
+                <div className="space-y-1 text-[13px] text-black leading-[1.26]">
                   {resume.skills.map((cat, idx) => (
                     <div key={idx}>
                       <span className="font-bold text-black">{cat.category}: </span>
