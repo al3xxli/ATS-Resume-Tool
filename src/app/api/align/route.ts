@@ -1,5 +1,6 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { ResumeData, KeywordMatch } from '@/types/resume';
+import { NextRequest, NextResponse } from 'next/server';
+import { ResumeData, KeywordMatch, SkillCategory } from '@/types/resume';
+import { extractJobTitle, analyzeJobKeywords } from '@/utils/keywordEngine';
 
 interface AlignRequestBody {
   jobDescription: string;
@@ -10,6 +11,15 @@ interface AlignRequestBody {
 interface DiscoveredModel {
   name: string;
   version: string;
+}
+
+interface ParsedAlignmentOutput {
+  jobTitle: string;
+  company: string;
+  keywords: Array<{ keyword: string; category: string; matched?: boolean }>;
+  tailoredSummary: string;
+  recommendedSkills: SkillCategory[];
+  rationale: string;
 }
 
 /**
@@ -134,6 +144,7 @@ async function callGeminiGenerateContent(
 
   const generationConfig: any = {
     temperature: 0.2,
+    maxOutputTokens: 4096,
   };
   if (useJsonMime) {
     generationConfig.responseMimeType = 'application/json';
@@ -173,6 +184,101 @@ async function callGeminiGenerateContent(
   return part.text;
 }
 
+/**
+ * Bulletproof JSON Parser & Sanitizer:
+ * Sanitizes syntax imperfections, and falls back to property-level regex extraction
+ * so malformed quotes or trailing commas in the AI response never cause a failure.
+ */
+function parseGeminiResponse(
+  raw: string,
+  fallbackTitle: string,
+  fallbackSummary: string,
+  fallbackSkills: SkillCategory[]
+): ParsedAlignmentOutput {
+  // 1. Sanitize string
+  let clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    clean = clean.slice(firstBrace, lastBrace + 1);
+  }
+
+  // Remove trailing commas before } or ]
+  clean = clean.replace(/,\s*([\]}])/g, '$1');
+
+  // Fix missing commas between objects: } { -> }, {
+  clean = clean.replace(/}\s*\{/g, '},{');
+
+  // Fix unescaped newlines inside strings
+  clean = clean.replace(/"([^"\\]*(?:\\[\s\S][^"\\]*)*)"/g, (match) => {
+    return match.replace(/\r?\n/g, '\\n').replace(/\t/g, '\\t');
+  });
+
+  try {
+    const parsed = JSON.parse(clean);
+    return {
+      jobTitle: parsed.jobTitle || fallbackTitle,
+      company: parsed.company || '',
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+      tailoredSummary: parsed.tailoredSummary || fallbackSummary,
+      recommendedSkills:
+        Array.isArray(parsed.recommendedSkills) && parsed.recommendedSkills.length > 0
+          ? parsed.recommendedSkills
+          : fallbackSkills,
+      rationale: parsed.rationale || '',
+    };
+  } catch (parseErr: any) {
+    console.warn('Standard JSON.parse failed, running resilient fallback extractor:', parseErr?.message);
+
+    // 2. Resilient Regex Extraction fallback
+    const titleMatch = raw.match(/"jobTitle"\s*:\s*"([^"]+)"/i);
+    const companyMatch = raw.match(/"company"\s*:\s*"([^"]*)"/i);
+    const summaryMatch = raw.match(/"tailoredSummary"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i);
+    const rationaleMatch = raw.match(/"rationale"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i);
+
+    // Extract keywords
+    const keywords: Array<{ keyword: string; category: string; matched: boolean }> = [];
+    const keywordRegex = /"keyword"\s*:\s*"([^"]+)"(?:\s*,\s*"category"\s*:\s*"([^"]+)")?/gi;
+    let km;
+    while ((km = keywordRegex.exec(raw)) !== null) {
+      const kw = km[1].trim();
+      const cat = (km[2] || 'technical').toLowerCase();
+      if (kw && !keywords.some((k) => k.keyword.toLowerCase() === kw.toLowerCase())) {
+        keywords.push({
+          keyword: kw,
+          category: ['technical', 'tool', 'methodology', 'domain'].includes(cat) ? cat : 'technical',
+          matched: false,
+        });
+      }
+    }
+
+    // Extract recommendedSkills categories and items
+    const skills: SkillCategory[] = [];
+    const catBlockRegex = /"category"\s*:\s*"([^"]+)"\s*,\s*"items"\s*:\s*\[([^\]]*)\]/gi;
+    let cbm;
+    while ((cbm = catBlockRegex.exec(raw)) !== null) {
+      const catName = cbm[1].trim();
+      const itemsRaw = cbm[2];
+      const items = itemsRaw
+        .split(',')
+        .map((i) => i.replace(/^[\s"'\\]+|[\s"'\\]+$/g, '').trim())
+        .filter(Boolean);
+      if (catName && items.length > 0) {
+        skills.push({ category: catName, items });
+      }
+    }
+
+    return {
+      jobTitle: titleMatch ? titleMatch[1].trim() : fallbackTitle,
+      company: companyMatch ? companyMatch[1].trim() : '',
+      keywords,
+      tailoredSummary: summaryMatch ? summaryMatch[1].replace(/\\n/g, '\n').trim() : fallbackSummary,
+      recommendedSkills: skills.length > 0 ? skills : fallbackSkills,
+      rationale: rationaleMatch ? rationaleMatch[1].trim() : '',
+    };
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: AlignRequestBody = await req.json();
@@ -209,7 +315,6 @@ export async function POST(req: NextRequest) {
     if (discovery.models.length > 0) {
       candidateQueue = rankDiscoveredModels(discovery.models);
     } else {
-      // Fallback defaults if listing was restricted
       candidateQueue = [
         { name: 'gemini-2.5-flash', version: 'v1beta' },
         { name: 'gemini-flash-latest', version: 'v1beta' },
@@ -234,9 +339,10 @@ Your task is to analyze a real-world job posting (which may be messy, copy-paste
 3. POSITIONING SUMMARY BUDGET: Generate a strictly TWO-LINE Positioning Summary tailored to this job.
    - Line 1: Target job title + candidate's core design philosophy / specialization aligned with the posting.
    - Line 2: Proven hands-on track record from concept through rapid prototyping, fabrication, electronics, and production.
-   - You MUST separate Line 1 and Line 2 with a single newline character ("\\n"). It must NOT exceed 2 lines so the resume stays strictly within the 1-page Letter format budget.
+   - You MUST separate Line 1 and Line 2 with an escaped newline character ("\\n"). It must NOT exceed 2 lines so the resume stays strictly within the 1-page Letter format budget.
 4. NO HALLUCINATIONS: Do NOT invent fake past employers, fake companies, or fake degrees for Alex. Map Alex's authentic capabilities into the exact phrasing and terminology preferred by the employer (e.g. if the posting says "Surface Modeling" instead of "3D Modeling", use the employer's term).
 5. SKILLS ALIGNMENT: Categorize skills matching the employer's vocabulary while retaining Alex's core competencies.
+6. JSON FORMAT INTEGRITY: Return strictly valid JSON. Do NOT use unescaped double quotes inside string values. Escape all quotes inside values as \\" or use single quotes.
 
 ### JOB POSTING:
 """
@@ -246,7 +352,7 @@ ${jobDescription.slice(0, 10000)}
 ### CURRENT RESUME SNAPSHOT:
 - Current Target Title: ${currentResume.targetJobTitle}
 - Current Summary: ${currentResume.summary}
-- Current Skills: ${JSON.stringify(currentResume.skills.map(s => `${s.category}: ${s.items.join(', ')}`))}
+- Current Skills: ${JSON.stringify(currentResume.skills.map((s) => `${s.category}: ${s.items.join(', ')}`))}
 
 ### REQUIRED JSON OUTPUT FORMAT:
 Respond ONLY with a valid JSON object matching this exact structure:
@@ -305,16 +411,21 @@ Respond ONLY with a valid JSON object matching this exact structure:
       );
     }
 
-    // Robust JSON extraction
-    const jsonMatch = textResult.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json(
-        { error: 'AI did not return valid structured JSON.', code: 'INVALID_AI_RESPONSE' },
-        { status: 500 }
-      );
-    }
+    // Bulletproof JSON parsing & regex extraction
+    const heuristicTitle = extractJobTitle(jobDescription);
+    const parsedData = parseGeminiResponse(
+      textResult,
+      heuristicTitle || currentResume.targetJobTitle,
+      currentResume.summary,
+      currentResume.skills
+    );
 
-    const parsedData = JSON.parse(jsonMatch[0]);
+    // If keywords list from AI was empty, use heuristic keyword analysis as fallback
+    let candidateKeywords = parsedData.keywords;
+    if (candidateKeywords.length === 0) {
+      const fallbackAnalysis = analyzeJobKeywords(jobDescription, currentResume);
+      candidateKeywords = fallbackAnalysis.keywords;
+    }
 
     // Calculate countInResume for each keyword against current resume
     const resumeFullText = [
@@ -328,7 +439,7 @@ Respond ONLY with a valid JSON object matching this exact structure:
       ...currentResume.languages,
     ].join(' ').toLowerCase();
 
-    const enrichedKeywords: KeywordMatch[] = (parsedData.keywords || []).map((k: any) => {
+    const enrichedKeywords: KeywordMatch[] = candidateKeywords.map((k: any) => {
       const escaped = (k.keyword || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
       const matches = resumeFullText.match(regex);
