@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ResumeData, JobAnalysisResult } from '@/types/resume';
 import { AllowedFont } from '@/utils/docxGenerator';
-import { Eye, ZoomIn, ZoomOut, Type, Sparkles } from 'lucide-react';
+import { ZoomIn, ZoomOut, Type, Move } from 'lucide-react';
 
 interface ResumePreviewProps {
   resume: ResumeData;
@@ -18,31 +18,119 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
   setFontFamily,
 }) => {
   const [zoom, setZoom] = useState<number>(1);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  // Auto-fit helper on small viewports
-  const handleFitToWidth = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const startPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const startPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Auto-fit helper to fit the 8.5in x 11in sheet into the container
+  const handleFitToScreen = () => {
     if (!containerRef.current) return;
-    const containerWidth = containerRef.current.clientWidth - 48;
+    const paddingX = 48;
+    const paddingY = 48;
+    const containerWidth = containerRef.current.clientWidth - paddingX;
+    const containerHeight = containerRef.current.clientHeight - paddingY;
     const sheetWidthPx = 816; // 8.5in * 96dpi
-    if (containerWidth < sheetWidthPx) {
-      const calculatedZoom = Math.max(0.45, Math.min(1, containerWidth / sheetWidthPx));
-      setZoom(Number(calculatedZoom.toFixed(2)));
-    } else {
-      setZoom(1);
-    }
+    const sheetHeightPx = 1056; // 11in * 96dpi
+
+    const zoomW = containerWidth / sheetWidthPx;
+    const zoomH = containerHeight / sheetHeightPx;
+    const calculatedZoom = Math.max(0.35, Math.min(1.2, Math.min(zoomW, zoomH)));
+    setZoom(Number(calculatedZoom.toFixed(2)));
+    setPan({ x: 0, y: 0 });
   };
 
+  const handleResetTo100 = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Initial fit on mount
   useEffect(() => {
-    handleFitToWidth();
+    handleFitToScreen();
     const handleResize = () => {
-      if (containerRef.current && containerRef.current.clientWidth - 48 < 816) {
-        handleFitToWidth();
+      if (pan.x === 0 && pan.y === 0) {
+        handleFitToScreen();
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Native non-passive Wheel listener for focal-point scroll-zoom
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - rect.width / 2;
+      const mouseY = e.clientY - rect.top - rect.height / 2;
+
+      // Sensitivity: smooth zoom factor
+      const zoomFactor = e.deltaY < 0 ? 1.09 : 0.91;
+
+      setZoom((prevZoom) => {
+        const nextZoom = Math.min(2.5, Math.max(0.35, Number((prevZoom * zoomFactor).toFixed(3))));
+        if (nextZoom === prevZoom) return prevZoom;
+
+        // Keep the point under cursor stationary
+        setPan((prevPan) => ({
+          x: Number((mouseX - (mouseX - prevPan.x) * (nextZoom / prevZoom)).toFixed(1)),
+          y: Number((mouseY - (mouseY - prevPan.y) * (nextZoom / prevZoom)).toFixed(1)),
+        }));
+
+        return nextZoom;
+      });
+    };
+
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => container.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Pointer drag/pan handlers
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.button !== 1) return;
+    if ((e.target as HTMLElement).closest('button, select, input, textarea')) return;
+
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+    startPanRef.current = { ...pan };
+
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - startPosRef.current.x;
+    const dy = e.clientY - startPosRef.current.y;
+    setPan({
+      x: Math.round(startPanRef.current.x + dx),
+      y: Math.round(startPanRef.current.y + dy),
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleDoubleClick = () => {
+    handleFitToScreen();
+  };
 
   const getCssFontFamily = (font: AllowedFont) => {
     switch (font) {
@@ -88,8 +176,12 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         {/* Zoom Controls */}
         <div className="flex items-center space-x-1.5">
+          <span className="text-[11px] text-zinc-400 hidden lg:inline-flex items-center select-none mr-1.5">
+            <Move className="w-3 h-3 mr-1 text-zinc-400" />
+            Scroll to zoom • Drag to pan
+          </span>
           <button
-            onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(1))))}
+            onClick={() => setZoom((z) => Math.max(0.35, Number((z - 0.1).toFixed(1))))}
             title="Zoom Out"
             className="p-1 rounded hover:bg-zinc-100 text-zinc-700 hover:text-black transition-colors"
           >
@@ -99,7 +191,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
             {Math.round(zoom * 100)}%
           </span>
           <button
-            onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(1))))}
+            onClick={() => setZoom((z) => Math.min(2.5, Number((z + 0.1).toFixed(1))))}
             title="Zoom In"
             className="p-1 rounded hover:bg-zinc-100 text-zinc-700 hover:text-black transition-colors"
           >
@@ -107,14 +199,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
           </button>
           <span className="text-zinc-300">|</span>
           <button
-            onClick={handleFitToWidth}
-            title="Fit to width"
+            onClick={handleFitToScreen}
+            title="Fit sheet to view"
             className="px-2 py-0.5 rounded text-[11px] bg-zinc-100 hover:bg-zinc-200 text-black font-medium transition-colors"
           >
             Fit
           </button>
           <button
-            onClick={() => setZoom(1)}
+            onClick={handleResetTo100}
             title="True 100% Letter Size"
             className="px-2 py-0.5 rounded text-[11px] bg-zinc-100 hover:bg-zinc-200 text-black font-medium transition-colors"
           >
@@ -123,21 +215,31 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
         </div>
       </div>
 
-      {/* Document Workspace Canvas */}
+      {/* Document Workspace Canvas with Pan & Zoom */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto p-6 md:p-10 flex justify-center items-start"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onDoubleClick={handleDoubleClick}
+        className={`flex-1 overflow-hidden relative flex justify-center items-center select-none ${
+          isDragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        style={{ touchAction: 'none' }}
+        title="Scroll to zoom in/out • Click & drag to pan • Double-click to fit"
       >
-        {/* Scaling Wrapper */}
+        {/* Scaling & Pan Wrapper */}
         <div
           style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top center',
+            transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+            transformOrigin: 'center center',
             width: '8.5in',
             height: '11in',
-            marginBottom: `${11 * 96 * (zoom - 1)}px`,
           }}
-          className="shrink-0 transition-transform duration-100 ease-out"
+          className={`shrink-0 print:transform-none print:m-0 ${
+            isDragging ? '' : 'transition-transform duration-75 ease-out'
+          }`}
         >
           {/* Strictly Fixed Letter Sheet with Smart Spacing (no more than 1/10th bottom margin) */}
           <div
@@ -151,7 +253,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               color: '#000000',
               backgroundColor: '#ffffff',
               overflow: 'hidden',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 4px 18px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0, 0, 0, 0.12)',
             }}
             className="text-black leading-[1.28] border border-zinc-300 flex flex-col justify-between"
           >
