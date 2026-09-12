@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FileDown, Printer, Copy } from 'lucide-react';
+import { FileDown, Printer, Copy, Briefcase } from 'lucide-react';
 import { ResumeData } from '@/types/resume';
 import { downloadAtsDocx, AllowedFont } from '@/utils/docxGenerator';
 
@@ -9,6 +9,9 @@ interface HeaderProps {
   resume: ResumeData;
   atsScore: number;
   fontFamily: AllowedFont;
+  jobsCount: number;
+  showTracker: boolean;
+  setShowTracker: React.Dispatch<React.SetStateAction<boolean>>;
   onCopyPlaintext: () => void;
   onPrint: () => void;
   activeTab: 'preview' | 'editor' | 'audit';
@@ -19,6 +22,9 @@ export const Header: React.FC<HeaderProps> = ({
   resume,
   atsScore,
   fontFamily,
+  jobsCount,
+  showTracker,
+  setShowTracker,
   onCopyPlaintext,
   onPrint,
   activeTab,
@@ -52,7 +58,10 @@ export const Header: React.FC<HeaderProps> = ({
               Single-Page ATS Master (.docx)
             </span>
             <span className="text-zinc-300 hidden md:inline">•</span>
-            <span className="text-[11px] text-zinc-500 hidden md:inline-flex items-center" title="All progress is saved in your browser's persistent memory">
+            <span
+              className="text-[11px] text-zinc-500 hidden md:inline-flex items-center"
+              title="All progress is saved in your browser's persistent memory"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 inline-block"></span>
               Saved
             </span>
@@ -97,6 +106,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowTracker((prev) => !prev)}
+              className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+                showTracker
+                  ? 'bg-zinc-100 text-black border-zinc-400 font-semibold'
+                  : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+              }`}
+              title="Toggle Application Tracker & Resume History Panel"
+            >
+              <Briefcase className="w-3.5 h-3.5 mr-1" />
+              <span>Tracker ({jobsCount})</span>
+            </button>
+
             <button
               onClick={onCopyPlaintext}
               title="Copy plain text"

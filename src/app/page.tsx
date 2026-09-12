@@ -13,6 +13,9 @@ import { JobPanel } from '@/components/JobPanel';
 import { ResumePreview } from '@/components/ResumePreview';
 import { ResumeEditor } from '@/components/ResumeEditor';
 import { AtsAuditView } from '@/components/AtsAuditView';
+import { JobTrackerPanel } from '@/components/JobTrackerPanel';
+import { initialTrackedJobs } from '@/data/defaultJobs';
+import { TrackedJob } from '@/types/jobTracker';
 import { Check } from 'lucide-react';
 
 export default function Home() {
@@ -22,8 +25,10 @@ export default function Home() {
   const [jobDescription, setJobDescription] = useState<string>(
     () => sampleJobs[0].description
   );
+  const [jobs, setJobs] = useState<TrackedJob[]>(initialTrackedJobs);
+  const [showTracker, setShowTracker] = useState(true);
   const [activeTab, setActiveTab] = useState<'preview' | 'editor' | 'audit'>('preview');
-  const [mobileView, setMobileView] = useState<'job' | 'resume'>('resume');
+  const [mobileView, setMobileView] = useState<'job' | 'resume' | 'tracker'>('resume');
   const [fontFamily, setFontFamily] = useState<AllowedFont>('Calibri');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -52,6 +57,19 @@ export default function Home() {
       const savedTab = localStorage.getItem('ats_active_tab');
       if (savedTab && ['preview', 'editor', 'audit'].includes(savedTab)) {
         setActiveTab(savedTab as 'preview' | 'editor' | 'audit');
+      }
+
+      const savedJobs = localStorage.getItem('ats_tracked_jobs');
+      if (savedJobs) {
+        const parsedJobs = JSON.parse(savedJobs);
+        if (Array.isArray(parsedJobs)) {
+          setJobs(parsedJobs);
+        }
+      }
+
+      const savedShowTracker = localStorage.getItem('ats_show_tracker');
+      if (savedShowTracker !== null) {
+        setShowTracker(savedShowTracker === 'true');
       }
     } catch (e) {
       console.error('Failed to load saved ATS progress:', e);
@@ -100,6 +118,26 @@ export default function Home() {
     }
   }, [activeTab, isLoaded]);
 
+  // 6. Persist tracked jobs to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_tracked_jobs', JSON.stringify(jobs));
+    } catch (e) {
+      console.error('Failed to save tracked jobs:', e);
+    }
+  }, [jobs, isLoaded]);
+
+  // 7. Persist showTracker to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_show_tracker', String(showTracker));
+    } catch (e) {
+      console.error('Failed to save show tracker state:', e);
+    }
+  }, [showTracker, isLoaded]);
+
   // Analyze keywords dynamically
   const jobAnalysis = useMemo(() => {
     return analyzeJobKeywords(jobDescription, resume);
@@ -124,7 +162,7 @@ export default function Home() {
       const text = generateAtsPlainText(resume);
       await navigator.clipboard.writeText(text);
       showToast('ATS Plaintext copied to clipboard! Ready to paste into application forms.');
-    } catch (err) {
+    } catch {
       showToast('Could not copy to clipboard. Please allow clipboard permissions.');
     }
   };
@@ -149,6 +187,9 @@ export default function Home() {
         resume={resume}
         atsScore={auditResult.overallScore}
         fontFamily={fontFamily}
+        jobsCount={jobs.length}
+        showTracker={showTracker}
+        setShowTracker={setShowTracker}
         onCopyPlaintext={handleCopyPlaintext}
         onPrint={handlePrint}
         activeTab={activeTab}
@@ -178,14 +219,27 @@ export default function Home() {
           >
             Resume & Audit
           </button>
+          <button
+            onClick={() => {
+              setMobileView('tracker');
+              setShowTracker(true);
+            }}
+            className={`flex-1 py-1.5 rounded-md font-medium text-center transition-all ${
+              mobileView === 'tracker'
+                ? 'bg-white text-zinc-900 shadow-2xs font-semibold'
+                : 'text-zinc-600'
+            }`}
+          >
+            Tracker ({jobs.length})
+          </button>
         </div>
       </div>
 
-      {/* Main Dual Panel Layout */}
+      {/* Main Multi-Panel Layout */}
       <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Left Panel: Target Job & Keyword Engine */}
         <aside
-          className={`w-full lg:w-[380px] xl:w-[420px] h-full shrink-0 ${
+          className={`w-full lg:w-[320px] xl:w-[360px] h-full shrink-0 ${
             mobileView === 'job' ? 'block' : 'hidden lg:block'
           }`}
         >
@@ -198,7 +252,7 @@ export default function Home() {
           />
         </aside>
 
-        {/* Right Panel: Live Resume Preview / Editor / Forensic Audit */}
+        {/* Center Panel: Live Resume Preview / Editor / Forensic Audit */}
         <section
           className={`flex-1 h-full overflow-hidden ${
             mobileView === 'resume' ? 'block' : 'hidden lg:block'
@@ -219,7 +273,32 @@ export default function Home() {
             <AtsAuditView resume={resume} matchedCount={jobAnalysis.matchedCount} />
           )}
         </section>
+
+        {/* Right Panel: Job Application Tracker & Resume History */}
+        <aside
+          className={`w-full lg:w-[320px] xl:w-[360px] h-full shrink-0 ${
+            mobileView === 'tracker'
+              ? 'block'
+              : showTracker
+              ? 'hidden lg:block'
+              : 'hidden'
+          }`}
+        >
+          <JobTrackerPanel
+            jobs={jobs}
+            setJobs={setJobs}
+            currentResume={resume}
+            setResume={setResume}
+            currentJobDescription={jobDescription}
+            setJobDescription={setJobDescription}
+            jobAnalysis={jobAnalysis}
+            fontFamily={fontFamily}
+            onClose={() => setShowTracker(false)}
+            onShowToast={showToast}
+          />
+        </aside>
       </main>
     </div>
   );
 }
+
