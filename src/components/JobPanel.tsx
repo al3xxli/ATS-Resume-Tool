@@ -99,6 +99,7 @@ export const JobPanel: React.FC<JobPanelProps> = ({
       const updated = alignResumeWithJob(resume, jobAnalysis);
       setResume(updated);
       setIsHeuristicAligning(false);
+      setAiError(null);
       if (onShowToast) onShowToast('Offline heuristic alignment applied.');
     }, 150);
   };
@@ -130,7 +131,7 @@ export const JobPanel: React.FC<JobPanelProps> = ({
       if (!res.ok) {
         if (data.code === 'MISSING_API_KEY') {
           setShowKeyModal(true);
-          setAiError('Please enter your Google AI Studio API key to enable Gemini AI.');
+          setAiError('Please enter your Google AI Studio API key to enable Gemini AI, or run offline heuristic.');
         } else {
           setAiError(data.error || 'Failed to align with Gemini AI.');
         }
@@ -397,22 +398,34 @@ export const JobPanel: React.FC<JobPanelProps> = ({
           </div>
         </div>
 
-        {/* Inline Error if AI Alignment fails */}
+        {/* Inline Error if AI Alignment fails with instant offline option */}
         {aiError && (
-          <div className="p-2.5 bg-zinc-100 border border-zinc-300 rounded text-[11px] text-zinc-800 flex items-start space-x-2">
-            <AlertCircle className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
-            <div className="flex-1 leading-snug">
-              <span>{aiError}</span>
+          <div className="p-3 bg-zinc-50 border border-zinc-300 rounded text-[11px] text-zinc-800 space-y-2">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+                <span className="font-semibold text-black">Gemini AI Notice</span>
+              </div>
+              <button onClick={() => setAiError(null)} className="text-zinc-400 hover:text-black">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p className="text-zinc-700 leading-relaxed">{aiError}</p>
+            <div className="flex items-center space-x-2 pt-1">
+              <button
+                onClick={handleHeuristicAlign}
+                className="px-2.5 py-1 bg-black text-white font-medium rounded text-[11px] hover:bg-zinc-800 transition-colors flex items-center"
+              >
+                <Wand2 className="w-3 h-3 mr-1" />
+                Run Offline Heuristic
+              </button>
               <button
                 onClick={() => setShowKeyModal(true)}
-                className="block text-black font-semibold underline mt-1 hover:text-zinc-700"
+                className="px-2.5 py-1 border border-zinc-300 bg-white text-black font-medium rounded text-[11px] hover:bg-zinc-100 transition-colors"
               >
                 Configure API Key
               </button>
             </div>
-            <button onClick={() => setAiError(null)} className="text-zinc-400 hover:text-black">
-              <X className="w-3.5 h-3.5" />
-            </button>
           </div>
         )}
 
@@ -536,7 +549,7 @@ export const JobPanel: React.FC<JobPanelProps> = ({
             </div>
 
             <p className="text-xs text-zinc-600 leading-relaxed">
-              Format-agnostic job extraction uses Google Gemini (<code className="bg-zinc-100 px-1 py-0.5 rounded font-mono text-[11px]">gemini-2.5-flash</code>) to strip boilerplate (EEO, benefits, pay ranges) and tailor the 2-line summary to the exact target job title.
+              Format-agnostic job extraction dynamically queries Google Gemini (<code className="bg-zinc-100 px-1 py-0.5 rounded font-mono text-[11px]">gemini-2.0-flash</code> / <code className="bg-zinc-100 px-1 py-0.5 rounded font-mono text-[11px]">gemini-1.5-flash</code>) to strip boilerplate (EEO, benefits, pay ranges) and tailor the 2-line summary to the exact target job title.
             </p>
 
             <form onSubmit={handleSaveKeyAndAlign} className="space-y-3">
