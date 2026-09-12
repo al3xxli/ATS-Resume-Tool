@@ -1,9 +1,227 @@
 'use client';
 
-import React from 'react';
-import { ResumeData, ExperienceItem, ProjectItem, EducationItem } from '@/types/resume';
-import { Plus, Trash2, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ResumeData, ExperienceItem, ProjectItem, EducationItem, SkillCategory } from '@/types/resume';
+import { Plus, Trash2, RotateCcw, X } from 'lucide-react';
 import { alexLiOriginalResume } from '@/data/defaultResume';
+
+/**
+ * Splits comma-separated skills intelligently, preserving commas that appear
+ * inside parentheses, e.g. "FDM 3D Printing (PLA, TPU, multi-material)" stays as 1 item.
+ */
+function splitSkillItems(text: string): string[] {
+  const items: string[] = [];
+  let current = '';
+  let parenDepth = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '(' || char === '[' || char === '{') {
+      parenDepth++;
+      current += char;
+    } else if (char === ')' || char === ']' || char === '}') {
+      parenDepth = Math.max(0, parenDepth - 1);
+      current += char;
+    } else if (char === ',' && parenDepth === 0) {
+      if (current.trim()) {
+        items.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim()) {
+    items.push(current.trim());
+  }
+
+  return items;
+}
+
+interface SkillCategoryEditorProps {
+  category: SkillCategory;
+  onUpdateCategoryName: (newName: string) => void;
+  onUpdateItems: (newItems: string[]) => void;
+  onRemoveCategory: () => void;
+}
+
+const SkillCategoryEditor: React.FC<SkillCategoryEditorProps> = ({
+  category,
+  onUpdateCategoryName,
+  onUpdateItems,
+  onRemoveCategory,
+}) => {
+  const [rawText, setRawText] = useState(category.items.join(', '));
+  const lastSyncedRef = useRef(category.items.join(', '));
+
+  useEffect(() => {
+    const currentJoined = category.items.join(', ');
+    if (currentJoined !== lastSyncedRef.current) {
+      setRawText(currentJoined);
+      lastSyncedRef.current = currentJoined;
+    }
+  }, [category.items]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setRawText(val);
+
+    const parsedItems = splitSkillItems(val);
+    lastSyncedRef.current = parsedItems.join(', ');
+    onUpdateItems(parsedItems);
+  };
+
+  const handleBlur = () => {
+    const parsedItems = splitSkillItems(rawText);
+    const normalized = parsedItems.join(', ');
+    setRawText(normalized);
+    lastSyncedRef.current = normalized;
+    onUpdateItems(parsedItems);
+  };
+
+  const handleRemoveItem = (indexToRemove: number) => {
+    const updated = category.items.filter((_, i) => i !== indexToRemove);
+    const normalized = updated.join(', ');
+    setRawText(normalized);
+    lastSyncedRef.current = normalized;
+    onUpdateItems(updated);
+  };
+
+  return (
+    <div className="p-3 bg-zinc-50 border border-zinc-200 rounded space-y-2">
+      <div className="flex items-center justify-between">
+        <input
+          type="text"
+          value={category.category}
+          onChange={(e) => onUpdateCategoryName(e.target.value)}
+          className="text-xs font-bold text-black bg-transparent border-b border-dashed border-zinc-300 hover:border-black focus:border-black focus:outline-hidden px-1 py-0.5"
+          placeholder="Category Name..."
+        />
+        <button
+          type="button"
+          onClick={onRemoveCategory}
+          className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
+          title="Remove Category"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div>
+        <input
+          type="text"
+          value={rawText}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-black font-medium focus:outline-hidden focus:border-black"
+          placeholder="Type skills separated by commas (e.g. Rhino 3D, Grasshopper, SolidWorks)..."
+        />
+      </div>
+
+      {category.items.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {category.items.map((item, iIdx) => (
+            <span
+              key={iIdx}
+              className="inline-flex items-center text-[11px] px-2 py-0.5 rounded bg-white border border-zinc-200 text-black shadow-2xs font-medium"
+            >
+              <span>{item}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveItem(iIdx)}
+                className="ml-1 text-zinc-400 hover:text-black transition-colors"
+                title={`Remove ${item}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface LanguagesEditorProps {
+  languages: string[];
+  onUpdateLanguages: (newLanguages: string[]) => void;
+}
+
+const LanguagesEditor: React.FC<LanguagesEditorProps> = ({
+  languages,
+  onUpdateLanguages,
+}) => {
+  const [rawText, setRawText] = useState(languages.join(', '));
+  const lastSyncedRef = useRef(languages.join(', '));
+
+  useEffect(() => {
+    const currentJoined = languages.join(', ');
+    if (currentJoined !== lastSyncedRef.current) {
+      setRawText(currentJoined);
+      lastSyncedRef.current = currentJoined;
+    }
+  }, [languages]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setRawText(val);
+
+    const parsedItems = splitSkillItems(val);
+    lastSyncedRef.current = parsedItems.join(', ');
+    onUpdateLanguages(parsedItems);
+  };
+
+  const handleBlur = () => {
+    const parsedItems = splitSkillItems(rawText);
+    const normalized = parsedItems.join(', ');
+    setRawText(normalized);
+    lastSyncedRef.current = normalized;
+    onUpdateLanguages(parsedItems);
+  };
+
+  const handleRemoveItem = (indexToRemove: number) => {
+    const updated = languages.filter((_, i) => i !== indexToRemove);
+    const normalized = updated.join(', ');
+    setRawText(normalized);
+    lastSyncedRef.current = normalized;
+    onUpdateLanguages(updated);
+  };
+
+  return (
+    <div className="p-3 bg-zinc-50 border border-zinc-200 rounded space-y-2">
+      <span className="text-xs font-bold text-black block">Languages</span>
+      <input
+        type="text"
+        value={rawText}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className="w-full p-2 bg-white border border-zinc-300 rounded text-xs text-black font-medium focus:outline-hidden focus:border-black"
+        placeholder="Type languages separated by commas (e.g. English, Mandarin Chinese)..."
+      />
+      {languages.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {languages.map((lang, lIdx) => (
+            <span
+              key={lIdx}
+              className="inline-flex items-center text-[11px] px-2 py-0.5 rounded bg-white border border-zinc-200 text-black shadow-2xs font-medium"
+            >
+              <span>{lang}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveItem(lIdx)}
+                className="ml-1 text-zinc-400 hover:text-black transition-colors"
+                title={`Remove ${lang}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface ResumeEditorProps {
   resume: ResumeData;
@@ -215,6 +433,45 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         projects: prev.projects.filter((_, i) => i !== projIndex),
       }));
     }
+  };
+
+  // Skills updates
+  const addSkillCategory = () => {
+    setResume((prev) => ({
+      ...prev,
+      skills: [
+        ...prev.skills,
+        {
+          category: 'New Skill Category',
+          items: ['Skill 1', 'Skill 2'],
+        },
+      ],
+    }));
+  };
+
+  const removeSkillCategory = (cIdx: number) => {
+    if (confirm('Remove this entire skill category?')) {
+      setResume((prev) => ({
+        ...prev,
+        skills: prev.skills.filter((_, i) => i !== cIdx),
+      }));
+    }
+  };
+
+  const updateSkillCategoryName = (cIdx: number, newName: string) => {
+    setResume((prev) => {
+      const skills = [...prev.skills];
+      skills[cIdx] = { ...skills[cIdx], category: newName };
+      return { ...prev, skills };
+    });
+  };
+
+  const updateSkillCategoryItems = (cIdx: number, newItems: string[]) => {
+    setResume((prev) => {
+      const skills = [...prev.skills];
+      skills[cIdx] = { ...skills[cIdx], items: newItems };
+      return { ...prev, skills };
+    });
   };
 
   return (
@@ -643,34 +900,41 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         </div>
       </div>
 
-      {/* Skills Matrix */}
+      {/* Skills Matrix & Languages */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-          Technical Skills
-        </h3>
-        <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+              Technical Skills & Languages
+            </h3>
+            <p className="text-[11px] text-zinc-500">
+              Type skills separated by commas (e.g. Rhino 3D, Grasshopper, SolidWorks).
+            </p>
+          </div>
+          <button
+            onClick={addSkillCategory}
+            className="text-xs text-black hover:underline font-medium inline-flex items-center"
+          >
+            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Category
+          </button>
+        </div>
+
+        <div className="space-y-3">
           {resume.skills.map((category, cIdx) => (
-            <div key={cIdx} className="p-2.5 bg-zinc-50 border border-zinc-200 rounded space-y-1">
-              <span className="text-xs font-bold text-black block">{category.category}</span>
-              <input
-                type="text"
-                value={category.items.join(', ')}
-                onChange={(e) => {
-                  const newItems = e.target.value
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                  setResume((prev) => {
-                    const skills = [...prev.skills];
-                    skills[cIdx] = { ...skills[cIdx], items: newItems };
-                    return { ...prev, skills };
-                  });
-                }}
-                className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
-                placeholder="Comma-separated items..."
-              />
-            </div>
+            <SkillCategoryEditor
+              key={cIdx}
+              category={category}
+              onUpdateCategoryName={(name) => updateSkillCategoryName(cIdx, name)}
+              onUpdateItems={(items) => updateSkillCategoryItems(cIdx, items)}
+              onRemoveCategory={() => removeSkillCategory(cIdx)}
+            />
           ))}
+
+          {/* Languages */}
+          <LanguagesEditor
+            languages={resume.languages || []}
+            onUpdateLanguages={(langs) => setResume((prev) => ({ ...prev, languages: langs }))}
+          />
         </div>
       </div>
     </div>
