@@ -3,11 +3,12 @@
 import React from 'react';
 import { FileDown, Printer, Copy } from 'lucide-react';
 import { ResumeData } from '@/types/resume';
-import { downloadAtsDocx } from '@/utils/docxGenerator';
+import { downloadAtsDocx, AllowedFont } from '@/utils/docxGenerator';
 
 interface HeaderProps {
   resume: ResumeData;
   atsScore: number;
+  fontFamily: AllowedFont;
   onCopyPlaintext: () => void;
   onPrint: () => void;
   activeTab: 'preview' | 'editor' | 'audit';
@@ -17,6 +18,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   resume,
   atsScore,
+  fontFamily,
   onCopyPlaintext,
   onPrint,
   activeTab,
@@ -27,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      await downloadAtsDocx(resume);
+      await downloadAtsDocx(resume, fontFamily);
     } catch (err) {
       console.error('Error downloading docx:', err);
       alert('Failed to generate .docx. Please try again.');

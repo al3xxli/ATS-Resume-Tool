@@ -7,12 +7,13 @@ import { sampleJobs } from '@/data/sampleJobs';
 import { analyzeJobKeywords } from '@/utils/keywordEngine';
 import { runAtsAudit } from '@/utils/atsAudit';
 import { generateAtsPlainText } from '@/utils/plaintextGenerator';
+import { AllowedFont } from '@/utils/docxGenerator';
 import { Header } from '@/components/Header';
 import { JobPanel } from '@/components/JobPanel';
 import { ResumePreview } from '@/components/ResumePreview';
 import { ResumeEditor } from '@/components/ResumeEditor';
 import { AtsAuditView } from '@/components/AtsAuditView';
-import { Check, Info, Briefcase, Eye, Sliders, ShieldCheck } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 export default function Home() {
   const [resume, setResume] = useState<ResumeData>(() =>
@@ -23,6 +24,7 @@ export default function Home() {
   );
   const [activeTab, setActiveTab] = useState<'preview' | 'editor' | 'audit'>('preview');
   const [mobileView, setMobileView] = useState<'job' | 'resume'>('resume');
+  const [fontFamily, setFontFamily] = useState<AllowedFont>('Calibri');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Analyze keywords dynamically
@@ -73,6 +75,7 @@ export default function Home() {
       <Header
         resume={resume}
         atsScore={auditResult.overallScore}
+        fontFamily={fontFamily}
         onCopyPlaintext={handleCopyPlaintext}
         onPrint={handlePrint}
         activeTab={activeTab}
@@ -106,10 +109,10 @@ export default function Home() {
       </div>
 
       {/* Main Dual Panel Layout */}
-      <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+      <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Left Panel: Target Job & Keyword Engine */}
         <aside
-          className={`w-full lg:w-[420px] xl:w-[460px] h-full shrink-0 ${
+          className={`w-full lg:w-[380px] xl:w-[420px] h-full shrink-0 ${
             mobileView === 'job' ? 'block' : 'hidden lg:block'
           }`}
         >
@@ -129,7 +132,12 @@ export default function Home() {
           }`}
         >
           {activeTab === 'preview' && (
-            <ResumePreview resume={resume} jobAnalysis={jobAnalysis} />
+            <ResumePreview
+              resume={resume}
+              jobAnalysis={jobAnalysis}
+              fontFamily={fontFamily}
+              setFontFamily={setFontFamily}
+            />
           )}
           {activeTab === 'editor' && (
             <ResumeEditor resume={resume} setResume={setResume} />

@@ -9,23 +9,29 @@ import {
 import { saveAs } from 'file-saver';
 import { ResumeData } from '@/types/resume';
 
+export type AllowedFont = 'Calibri' | 'Arial' | 'Times New Roman';
+
 /**
- * Creates an ATS-compliant Word document (.docx) formatted strictly onto a SINGLE Letter size page.
- * Rules:
- * - 100% Black text on pure white background (no blue, green, or color tints)
- * - Single-column layout
- * - Strict 0.5" margins (720 twips) to fit comfortably on 1 Letter page
- * - Font: Calibri (9.5pt - 10pt for body, 16pt for name)
- * - Exact job title in header
- * - Standard section headers with clean black divider line
+ * Creates an ATS-compliant Word document (.docx) adhering to professional styling guidelines:
+ * - Classic, professional font (Calibri, Arial, or Times New Roman)
+ * - Headings: 12pt bold for clear hierarchy
+ * - Body / Bullets: 10pt font for comfortable readability and white space
+ * - Margins: 0.7" (1008 twips) for balanced, clean layout without overcrowding
+ * - Line Spacing: 1.15 (line: 276)
+ * - Strict 1-page Letter fit
+ * - 100% Black text on pure white background
+ * - Consistent styling across all similar elements
  */
-export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
+export async function generateAtsDocx(
+  resume: ResumeData,
+  fontFamily: AllowedFont = 'Calibri'
+): Promise<Blob> {
   const children: Paragraph[] = [];
 
-  // Helper for section headings
+  // Helper for section headings (12pt Bold Uppercase with bottom border)
   const createSectionHeader = (title: string) => {
     return new Paragraph({
-      spacing: { before: 100, after: 30 },
+      spacing: { before: 120, after: 40 },
       border: {
         bottom: {
           color: '000000',
@@ -38,15 +44,15 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
         new TextRun({
           text: title.toUpperCase(),
           bold: true,
-          size: 20, // 10pt
-          font: 'Calibri',
+          size: 24, // 12pt
+          font: fontFamily,
           color: '000000',
         }),
       ],
     });
   };
 
-  // 1. Candidate Name (Centered, Bold, Black)
+  // 1. Candidate Name (Centered, 18pt Bold, Black)
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -55,26 +61,26 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
         new TextRun({
           text: resume.name.toUpperCase(),
           bold: true,
-          size: 32, // 16pt
-          font: 'Calibri',
+          size: 36, // 18pt
+          font: fontFamily,
           color: '000000',
         }),
       ],
     })
   );
 
-  // 2. Exact Target Job Title (Rule 2: 10.6x factor, Pure Black)
+  // 2. Exact Target Job Title (12pt Bold, Black, Rule #2)
   if (resume.targetJobTitle) {
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 25 },
+        spacing: { after: 30 },
         children: [
           new TextRun({
             text: resume.targetJobTitle.toUpperCase(),
             bold: true,
-            size: 21, // 10.5pt
-            font: 'Calibri',
+            size: 24, // 12pt
+            font: fontFamily,
             color: '000000',
           }),
         ],
@@ -82,12 +88,13 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
     );
   }
 
-  // 3. Contact Info (In body, separated by plain pipes, pure black)
+  // 3. Contact Info (10pt, centered, pipe-separated)
   const contactParts: string[] = [];
   if (resume.contact.phone) contactParts.push(resume.contact.phone);
   if (resume.contact.email) contactParts.push(resume.contact.email);
   if (resume.contact.linkedin) contactParts.push(resume.contact.linkedin);
   if (resume.contact.portfolio) contactParts.push(resume.contact.portfolio);
+  if (resume.contact.location) contactParts.push(resume.contact.location);
 
   children.push(
     new Paragraph({
@@ -96,25 +103,25 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
       children: [
         new TextRun({
           text: contactParts.join('  |  '),
-          size: 18, // 9pt
-          font: 'Calibri',
+          size: 20, // 10pt
+          font: fontFamily,
           color: '000000',
         }),
       ],
     })
   );
 
-  // 4. Concise Summary / Positioning Statement
+  // 4. Concise Summary / Positioning Statement (10pt, 1.15 line spacing)
   if (resume.summary) {
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 80, line: 230 },
+        spacing: { after: 80, line: 276 },
         children: [
           new TextRun({
             text: resume.summary,
-            size: 19, // 9.5pt
-            font: 'Calibri',
+            size: 20, // 10pt
+            font: fontFamily,
             color: '000000',
           }),
         ],
@@ -129,27 +136,26 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
     resume.education.forEach((edu) => {
       children.push(
         new Paragraph({
-          spacing: { before: 40, after: 15 },
+          spacing: { before: 50, after: 15 },
           children: [
             new TextRun({
               text: edu.institution,
               bold: true,
-              size: 19, // 9.5pt
-              font: 'Calibri',
+              size: 21, // 10.5pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: ` — ${edu.degree}`,
               italics: true,
-              size: 19,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: `  (${edu.dateRange})`,
-              bold: true,
-              size: 19,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
           ],
@@ -160,12 +166,12 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
         children.push(
           new Paragraph({
             bullet: { level: 0 },
-            spacing: { after: 15, line: 220 },
+            spacing: { after: 15, line: 276 },
             children: [
               new TextRun({
                 text: detail,
-                size: 18, // 9pt
-                font: 'Calibri',
+                size: 20, // 10pt
+                font: fontFamily,
                 color: '000000',
               }),
             ],
@@ -175,7 +181,7 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
     });
   }
 
-  // 6. Selected Projects
+  // 6. Projects
   if (resume.projects && resume.projects.length > 0) {
     children.push(createSectionHeader('Projects'));
 
@@ -187,22 +193,21 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
             new TextRun({
               text: proj.name,
               bold: true,
-              size: 19,
-              font: 'Calibri',
+              size: 21, // 10.5pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: ` — ${proj.subtitle}`,
               italics: true,
-              size: 18,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: `  (${proj.dateRange})`,
-              bold: true,
-              size: 19,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
           ],
@@ -217,8 +222,8 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
               new TextRun({
                 text: `Awards: ${proj.awards}`,
                 italics: true,
-                size: 17,
-                font: 'Calibri',
+                size: 19, // 9.5pt
+                font: fontFamily,
                 color: '000000',
               }),
             ],
@@ -230,12 +235,12 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
         children.push(
           new Paragraph({
             bullet: { level: 0 },
-            spacing: { after: 15, line: 220 },
+            spacing: { after: 15, line: 276 },
             children: [
               new TextRun({
                 text: bullet,
-                size: 18, // 9pt
-                font: 'Calibri',
+                size: 20, // 10pt
+                font: fontFamily,
                 color: '000000',
               }),
             ],
@@ -257,22 +262,21 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
             new TextRun({
               text: exp.company,
               bold: true,
-              size: 19,
-              font: 'Calibri',
+              size: 21, // 10.5pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: ` — ${exp.role}, ${exp.location}`,
               italics: true,
-              size: 18,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: `  (${exp.dateRange})`,
-              bold: true,
-              size: 19,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
           ],
@@ -283,12 +287,12 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
         children.push(
           new Paragraph({
             bullet: { level: 0 },
-            spacing: { after: 15, line: 220 },
+            spacing: { after: 15, line: 276 },
             children: [
               new TextRun({
                 text: bullet,
-                size: 18, // 9pt
-                font: 'Calibri',
+                size: 20, // 10pt
+                font: fontFamily,
                 color: '000000',
               }),
             ],
@@ -305,19 +309,19 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
     resume.skills.forEach((skillGroup) => {
       children.push(
         new Paragraph({
-          spacing: { after: 15, line: 220 },
+          spacing: { after: 15, line: 276 },
           children: [
             new TextRun({
               text: `${skillGroup.category}: `,
               bold: true,
-              size: 18,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: skillGroup.items.join(', '),
-              size: 18,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
           ],
@@ -328,19 +332,19 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
     if (resume.languages && resume.languages.length > 0) {
       children.push(
         new Paragraph({
-          spacing: { after: 15, line: 220 },
+          spacing: { after: 15, line: 276 },
           children: [
             new TextRun({
               text: 'Languages: ',
               bold: true,
-              size: 18,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
             new TextRun({
               text: resume.languages.join(', '),
-              size: 18,
-              font: 'Calibri',
+              size: 20, // 10pt
+              font: fontFamily,
               color: '000000',
             }),
           ],
@@ -349,17 +353,17 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
     }
   }
 
-  // Single Letter Page configuration (8.5" x 11" with 0.5" margins = 720 twips)
+  // Single Letter Page configuration: 8.5" x 11" with balanced 0.7" margins (1008 twips)
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: 720,
-              right: 720,
-              bottom: 720,
-              left: 720,
+              top: 1008,
+              right: 1008,
+              bottom: 1008,
+              left: 1008,
             },
           },
         },
@@ -374,8 +378,12 @@ export async function generateAtsDocx(resume: ResumeData): Promise<Blob> {
 /**
  * Convenience helper to download the resume directly as a .docx file.
  */
-export async function downloadAtsDocx(resume: ResumeData, filename?: string) {
-  const blob = await generateAtsDocx(resume);
+export async function downloadAtsDocx(
+  resume: ResumeData,
+  fontFamily: AllowedFont = 'Calibri',
+  filename?: string
+) {
+  const blob = await generateAtsDocx(resume, fontFamily);
   const cleanTitle = (resume.targetJobTitle || 'Resume')
     .replace(/[^a-zA-Z0-9]/g, '_')
     .toLowerCase();
