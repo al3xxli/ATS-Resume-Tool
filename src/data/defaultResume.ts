@@ -4,7 +4,7 @@ export const alexLiOriginalResume: ResumeData = {
   name: 'ALEX LI',
   targetJobTitle: 'HARDWARE PRODUCT DESIGNER',
   summary:
-    'Architecture-trained product designer focused on physical products, human use, and material exploration. Experienced taking products from concept and form development through rapid prototyping, electronics, and digital fabrication.',
+    'Architecture-trained product designer focused on physical products, human use, and material exploration.\nI take products from concept and form development through prototyping and fabrication.',
   contact: {
     phone: '+1 825 983 4291',
     email: 'a368li@berkeley.edu',

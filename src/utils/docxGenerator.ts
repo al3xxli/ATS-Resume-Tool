@@ -111,20 +111,30 @@ export async function generateAtsDocx(
     })
   );
 
-  // 4. Concise Summary / Positioning Statement (10pt, 1.15 line spacing)
+  // 4. Concise Summary / Positioning Statement (10pt, 1.15 line spacing, line-sensitive)
   if (resume.summary) {
+    const summaryLines = resume.summary.split('\n');
+    const summaryChildren: TextRun[] = [];
+
+    summaryLines.forEach((lineText, idx) => {
+      if (idx > 0) {
+        summaryChildren.push(new TextRun({ break: 1 }));
+      }
+      summaryChildren.push(
+        new TextRun({
+          text: lineText,
+          size: 20, // 10pt
+          font: fontFamily,
+          color: '000000',
+        })
+      );
+    });
+
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: 80, line: 276 },
-        children: [
-          new TextRun({
-            text: resume.summary,
-            size: 20, // 10pt
-            font: fontFamily,
-            color: '000000',
-          }),
-        ],
+        children: summaryChildren,
       })
     );
   }

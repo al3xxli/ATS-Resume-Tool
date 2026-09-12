@@ -198,9 +198,9 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               </div>
             </div>
 
-            {/* Positioning Statement (10pt, 1.15 line spacing) */}
+            {/* Positioning Statement (10pt, 1.15 line spacing, line-sensitive) */}
             {resume.summary && (
-              <div className="text-[13px] text-black text-center mb-2.5 leading-[1.25]">
+              <div className="text-[13px] text-black text-center mb-2.5 leading-[1.25] whitespace-pre-line">
                 {resume.summary}
               </div>
             )}

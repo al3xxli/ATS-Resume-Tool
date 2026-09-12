@@ -207,14 +207,20 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
 
       {/* Summary */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-2">
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-          Positioning Summary
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+            Positioning Summary
+          </h3>
+          <span className="text-[11px] text-zinc-500">
+            Line breaks (Shift+Enter or Enter) are preserved
+          </span>
+        </div>
         <textarea
-          rows={2}
+          rows={3}
           value={resume.summary}
           onChange={(e) => setResume((prev) => ({ ...prev, summary: e.target.value }))}
-          className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded text-xs text-black leading-relaxed"
+          placeholder="Enter positioning summary (line breaks will show on resume)..."
+          className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
         />
       </div>
 
