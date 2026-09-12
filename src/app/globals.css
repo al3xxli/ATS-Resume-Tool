@@ -43,12 +43,13 @@ body {
   #printable-resume {
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
+    padding: 0.5in !important;
     margin: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    min-height: 100% !important;
-    max-height: 100% !important;
+    width: 8.5in !important;
+    height: 11in !important;
+    max-width: 8.5in !important;
+    max-height: 11in !important;
+    transform: none !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
   }
