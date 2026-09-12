@@ -1,5 +1,4 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ResumeData, KeywordMatch } from '@/types/resume';
 
 interface AlignRequestBody {
@@ -8,20 +7,19 @@ interface AlignRequestBody {
   clientApiKey?: string;
 }
 
-interface ResolvedModelInfo {
-  modelName: string;
-  apiVersion: string;
-  availableModels: string[];
+interface DiscoveredModel {
+  name: string;
+  version: string;
 }
 
 /**
- * Dynamically discovers supported generative models for the user's API key
- * by inspecting Google's ListModels API on v1beta and v1.
+ * Queries Google ListModels API on v1beta and v1 to discover all available
+ * text generation models for the user's specific API key.
  */
-async function resolveAvailableModel(apiKey: string): Promise<ResolvedModelInfo> {
+async function discoverModels(apiKey: string): Promise<{ models: DiscoveredModel[]; error?: string }> {
   const versions = ['v1beta', 'v1'];
-  let lastError: any = null;
-  const discovered: { name: string; version: string; methods: string[] }[] = [];
+  const allDiscovered: DiscoveredModel[] = [];
+  let apiError: any = null;
 
   for (const ver of versions) {
     try {
@@ -29,87 +27,150 @@ async function resolveAvailableModel(apiKey: string): Promise<ResolvedModelInfo>
       const data = await res.json();
 
       if (data.error) {
-        lastError = data.error;
+        apiError = data.error;
         continue;
       }
 
       if (Array.isArray(data.models)) {
         for (const m of data.models) {
-          discovered.push({
-            name: (m.name || '').replace(/^models\//, ''),
-            version: ver,
-            methods: m.supportedGenerationMethods || [],
-          });
+          const rawName = (m.name || '').replace(/^models\//, '');
+          const methods: string[] = m.supportedGenerationMethods || [];
+
+          // Only keep models that support generateContent and are not purely multimodal image/tts/audio
+          if (
+            methods.includes('generateContent') &&
+            !rawName.includes('-tts') &&
+            !rawName.includes('-image') &&
+            !rawName.includes('lyria') &&
+            !rawName.includes('transcribe') &&
+            !rawName.includes('robotics')
+          ) {
+            allDiscovered.push({
+              name: rawName,
+              version: ver,
+            });
+          }
         }
-        if (discovered.length > 0) {
+
+        if (allDiscovered.length > 0) {
           break;
         }
       }
-    } catch (e: any) {
+    } catch {
       // Continue to next version
     }
   }
 
-  // Filter models that support generateContent
-  const contentModels = discovered.filter((m) =>
-    m.methods.includes('generateContent')
-  );
-
-  if (contentModels.length > 0) {
-    const priorityPatterns = [
-      /^gemini-2\.0-flash$/i,
-      /^gemini-2\.0/i,
-      /^gemini-1\.5-flash$/i,
-      /^gemini-1\.5-flash-latest$/i,
-      /^gemini-1\.5-flash-002$/i,
-      /^gemini-1\.5-flash-001$/i,
-      /^gemini-1\.5-flash/i,
-      /^gemini-1\.5-pro$/i,
-      /^gemini-1\.5-pro-latest$/i,
-      /^gemini-1\.5-pro/i,
-      /^gemini-pro$/i,
-      /^gemini-1\.0-pro$/i,
-      /^gemini/i,
-    ];
-
-    for (const pattern of priorityPatterns) {
-      const match = contentModels.find((m) => pattern.test(m.name));
-      if (match) {
-        return {
-          modelName: match.name,
-          apiVersion: match.version,
-          availableModels: contentModels.map((m) => m.name),
-        };
-      }
-    }
-
-    return {
-      modelName: contentModels[0].name,
-      apiVersion: contentModels[0].version,
-      availableModels: contentModels.map((m) => m.name),
-    };
-  }
-
-  // If Google API returned an explicit error, throw an informative message
-  if (lastError) {
-    const rawMsg = lastError.message || JSON.stringify(lastError);
+  if (allDiscovered.length === 0 && apiError) {
+    const rawMsg = apiError.message || JSON.stringify(apiError);
     if (rawMsg.includes('API key not valid')) {
-      throw new Error('API key is invalid. Please verify your Google AI Studio API key in AI Settings.');
+      return { models: [], error: 'API key is invalid. Please verify your Google AI Studio key in AI Settings.' };
     }
     if (rawMsg.includes('Generative Language API has not been used') || rawMsg.includes('disabled')) {
-      throw new Error(
-        'The Generative Language API is disabled for this key project. Please enable it in Google Cloud Console or create a free key at https://aistudio.google.com/app/apikey.'
-      );
+      return {
+        models: [],
+        error:
+          'The Generative Language API is disabled for this key project. Please enable it in Google Cloud Console or create a free key at https://aistudio.google.com/app/apikey.',
+      };
     }
-    throw new Error(`Google API: ${rawMsg}`);
+    return { models: [], error: `Google API: ${rawMsg}` };
   }
 
-  // Fallback defaults if listing was blocked
-  return {
-    modelName: 'gemini-2.0-flash',
-    apiVersion: 'v1beta',
-    availableModels: [],
+  return { models: allDiscovered };
+}
+
+/**
+ * Sorts discovered models by preference for fast, high-quality structured ATS alignment.
+ */
+function rankDiscoveredModels(models: DiscoveredModel[]): DiscoveredModel[] {
+  const priorityPatterns = [
+    /^gemini-2\.5-flash$/i,
+    /^gemini-flash-latest$/i,
+    /^gemini-2\.5-flash-lite$/i,
+    /^gemini-flash-lite-latest$/i,
+    /^gemini-2\.5-pro$/i,
+    /^gemini-pro-latest$/i,
+    /^gemini-3\.5-flash$/i,
+    /^gemini-2\.0-flash$/i,
+    /^gemini-1\.5-flash$/i,
+    /^gemini-1\.5-pro$/i,
+    /^gemini/i,
+  ];
+
+  const sorted: DiscoveredModel[] = [];
+  const visited = new Set<string>();
+
+  for (const pattern of priorityPatterns) {
+    for (const m of models) {
+      if (!visited.has(m.name) && pattern.test(m.name)) {
+        visited.add(m.name);
+        sorted.push(m);
+      }
+    }
+  }
+
+  // Append any remaining models
+  for (const m of models) {
+    if (!visited.has(m.name)) {
+      visited.add(m.name);
+      sorted.push(m);
+    }
+  }
+
+  return sorted;
+}
+
+/**
+ * Calls Gemini generateContent directly via REST.
+ */
+async function callGeminiGenerateContent(
+  apiKey: string,
+  modelName: string,
+  apiVersion: string,
+  prompt: string,
+  useJsonMime: boolean
+): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`;
+
+  const generationConfig: any = {
+    temperature: 0.2,
   };
+  if (useJsonMime) {
+    generationConfig.responseMimeType = 'application/json';
+  }
+
+  const payload = {
+    contents: [
+      {
+        parts: [{ text: prompt }],
+      },
+    ],
+    generationConfig,
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || data.error) {
+    throw new Error(data.error?.message || `HTTP ${res.status}: ${res.statusText}`);
+  }
+
+  const candidate = data.candidates?.[0];
+  if (!candidate) {
+    throw new Error('No candidates returned from Gemini API.');
+  }
+
+  const part = candidate.content?.parts?.[0];
+  if (!part || !part.text) {
+    throw new Error('No text content found in Gemini response.');
+  }
+
+  return part.text;
 }
 
 export async function POST(req: NextRequest) {
@@ -136,20 +197,26 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Discover available models for this specific API key
-    let modelSelection: ResolvedModelInfo;
-    try {
-      modelSelection = await resolveAvailableModel(apiKey);
-    } catch (discoveryErr: any) {
+    const discovery = await discoverModels(apiKey);
+    if (discovery.error) {
       return NextResponse.json(
-        {
-          error: discoveryErr?.message || 'Failed to authenticate with Google Gemini API.',
-          code: 'AUTH_OR_PERMISSION_ERROR',
-        },
+        { error: discovery.error, code: 'AUTH_OR_PERMISSION_ERROR' },
         { status: 400 }
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    let candidateQueue: DiscoveredModel[] = [];
+    if (discovery.models.length > 0) {
+      candidateQueue = rankDiscoveredModels(discovery.models);
+    } else {
+      // Fallback defaults if listing was restricted
+      candidateQueue = [
+        { name: 'gemini-2.5-flash', version: 'v1beta' },
+        { name: 'gemini-flash-latest', version: 'v1beta' },
+        { name: 'gemini-2.0-flash', version: 'v1beta' },
+        { name: 'gemini-1.5-flash', version: 'v1beta' },
+      ];
+    }
 
     const prompt = `
 You are an expert ATS (Applicant Tracking System) Optimization and Resume Alignment Specialist.
@@ -205,75 +272,40 @@ Respond ONLY with a valid JSON object matching this exact structure:
 }
 `;
 
-    // 2. Build candidate queue starting with the resolved model
-    const candidateQueue: { model: string; apiVersion?: string }[] = [];
-
-    if (modelSelection.modelName) {
-      candidateQueue.push({
-        model: modelSelection.modelName,
-        apiVersion: modelSelection.apiVersion,
-      });
-    }
-
-    const fallbacks = [
-      { model: 'gemini-2.0-flash', apiVersion: 'v1beta' },
-      { model: 'gemini-1.5-flash-latest', apiVersion: 'v1beta' },
-      { model: 'gemini-1.5-flash', apiVersion: 'v1' },
-      { model: 'gemini-1.5-flash', apiVersion: 'v1beta' },
-      { model: 'gemini-1.5-pro', apiVersion: 'v1beta' },
-      { model: 'gemini-pro', apiVersion: 'v1' },
-    ];
-
-    for (const fb of fallbacks) {
-      if (!candidateQueue.some((c) => c.model === fb.model && c.apiVersion === fb.apiVersion)) {
-        candidateQueue.push(fb);
-      }
-    }
-
     let textResult = '';
     let usedModelName = '';
-    let lastGenError: any = null;
+    const attemptErrors: string[] = [];
 
-    for (const candidate of candidateQueue) {
+    // Try candidates in prioritized order
+    for (const candidate of candidateQueue.slice(0, 6)) {
+      // 1. Try with responseMimeType: application/json
       try {
-        const generationConfig: any = {
-          temperature: 0.2,
-        };
-        // responseMimeType is supported on gemini-1.5 and gemini-2.0
-        if (!candidate.model.includes('gemini-1.0') && candidate.model !== 'gemini-pro') {
-          generationConfig.responseMimeType = 'application/json';
-        }
-
-        const model = genAI.getGenerativeModel(
-          {
-            model: candidate.model,
-            generationConfig,
-          },
-          candidate.apiVersion ? { apiVersion: candidate.apiVersion } : undefined
-        );
-
-        const response = await model.generateContent(prompt);
-        textResult = response.response.text();
-        usedModelName = candidate.model;
+        textResult = await callGeminiGenerateContent(apiKey, candidate.name, candidate.version, prompt, true);
+        usedModelName = candidate.name;
         if (textResult) break;
       } catch (err: any) {
-        lastGenError = err;
-        console.warn(`Model attempt failed [${candidate.model} on ${candidate.apiVersion}]:`, err?.message);
+        // 2. If rejected, retry without responseMimeType
+        try {
+          textResult = await callGeminiGenerateContent(apiKey, candidate.name, candidate.version, prompt, false);
+          usedModelName = candidate.name;
+          if (textResult) break;
+        } catch (retryErr: any) {
+          attemptErrors.push(`${candidate.name}: ${retryErr?.message || err?.message}`);
+        }
       }
     }
 
     if (!textResult) {
-      const errDetail = lastGenError?.message || 'All candidate Gemini models failed to generate content.';
       return NextResponse.json(
         {
-          error: `Gemini generation error: ${errDetail}. Available models on this key: [${modelSelection.availableModels.join(', ') || 'none found'}]. You can also use the Offline Heuristic Alignment.`,
+          error: `Gemini generation error across available models: ${attemptErrors.join(' | ')}. You can also use the Offline Heuristic Alignment.`,
           code: 'GENERATION_FAILED',
         },
         { status: 500 }
       );
     }
 
-    // 3. Robust JSON extraction
+    // Robust JSON extraction
     const jsonMatch = textResult.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
