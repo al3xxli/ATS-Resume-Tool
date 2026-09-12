@@ -16,6 +16,8 @@ import { AtsAuditView } from '@/components/AtsAuditView';
 import { JobTrackerPanel } from '@/components/JobTrackerPanel';
 import { initialTrackedJobs } from '@/data/defaultJobs';
 import { TrackedJob } from '@/types/jobTracker';
+import { ProjectPacket } from '@/types/packets';
+import { defaultProjectPackets } from '@/data/defaultPackets';
 import { Check } from 'lucide-react';
 
 export default function Home() {
@@ -33,6 +35,7 @@ export default function Home() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<JobAnalysisResult | null>(null);
+  const [projectPackets, setProjectPackets] = useState<ProjectPacket[]>(defaultProjectPackets);
 
   // Handle setting job description and resetting previous AI analysis
   const handleSetJobDescription = (text: string) => {
@@ -77,6 +80,14 @@ export default function Home() {
       const savedShowTracker = localStorage.getItem('ats_show_tracker');
       if (savedShowTracker !== null) {
         setShowTracker(savedShowTracker === 'true');
+      }
+
+      const savedPackets = localStorage.getItem('ats_project_packets');
+      if (savedPackets) {
+        const parsedPackets = JSON.parse(savedPackets);
+        if (Array.isArray(parsedPackets) && parsedPackets.length > 0) {
+          setProjectPackets(parsedPackets);
+        }
       }
     } catch (e) {
       console.error('Failed to load saved ATS progress:', e);
@@ -144,6 +155,16 @@ export default function Home() {
       console.error('Failed to save show tracker state:', e);
     }
   }, [showTracker, isLoaded]);
+
+  // 8. Persist project packets library to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_project_packets', JSON.stringify(projectPackets));
+    } catch (e) {
+      console.error('Failed to save project packets:', e);
+    }
+  }, [projectPackets, isLoaded]);
 
   // Analyze keywords dynamically (prioritizes Gemini AI analysis if available)
   const jobAnalysis = useMemo(() => {
@@ -279,7 +300,13 @@ export default function Home() {
             />
           )}
           {activeTab === 'editor' && (
-            <ResumeEditor resume={resume} setResume={setResume} />
+            <ResumeEditor
+              resume={resume}
+              setResume={setResume}
+              projectPackets={projectPackets}
+              setProjectPackets={setProjectPackets}
+              onShowToast={showToast}
+            />
           )}
           {activeTab === 'audit' && (
             <AtsAuditView resume={resume} matchedCount={jobAnalysis.matchedCount} />

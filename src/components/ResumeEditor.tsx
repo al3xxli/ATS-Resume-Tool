@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ResumeData, ExperienceItem, ProjectItem, EducationItem, SkillCategory } from '@/types/resume';
-import { Plus, Trash2, RotateCcw, X } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, X, ArrowLeftRight, BookmarkPlus, Layers } from 'lucide-react';
 import { alexLiOriginalResume } from '@/data/defaultResume';
+import { ProjectPacket } from '@/types/packets';
+import { defaultProjectPackets } from '@/data/defaultPackets';
+import { ProjectSwapModal } from '@/components/ProjectSwapModal';
 
 /**
  * Splits comma-separated skills intelligently, preserving commas that appear
@@ -226,12 +229,99 @@ const LanguagesEditor: React.FC<LanguagesEditorProps> = ({
 interface ResumeEditorProps {
   resume: ResumeData;
   setResume: React.Dispatch<React.SetStateAction<ResumeData>>;
+  projectPackets?: ProjectPacket[];
+  setProjectPackets?: React.Dispatch<React.SetStateAction<ProjectPacket[]>>;
+  onShowToast?: (msg: string) => void;
 }
 
 export const ResumeEditor: React.FC<ResumeEditorProps> = ({
   resume,
   setResume,
+  projectPackets = defaultProjectPackets,
+  setProjectPackets,
+  onShowToast,
 }) => {
+  const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [targetSwapSlot, setTargetSwapSlot] = useState<number | null>(null);
+  const [targetSwapName, setTargetSwapName] = useState<string>('');
+
+  const activePackets = projectPackets && projectPackets.length > 0 ? projectPackets : defaultProjectPackets;
+
+  const handleOpenSwapModal = (slotIndex: number | null, slotName?: string) => {
+    setTargetSwapSlot(slotIndex);
+    setTargetSwapName(slotName || '');
+    setIsSwapModalOpen(true);
+  };
+
+  const handleExecuteSwap = (packet: ProjectPacket, slotIndex: number | null) => {
+    if (slotIndex !== null && slotIndex !== undefined && slotIndex >= 0) {
+      setResume((prev) => {
+        const projs = [...prev.projects];
+        projs[slotIndex] = {
+          id: `proj-${Date.now()}`,
+          name: packet.name,
+          subtitle: packet.subtitle,
+          dateRange: packet.dateRange,
+          awards: packet.awards,
+          highlights: [...packet.highlights],
+        };
+        return { ...prev, projects: projs };
+      });
+      if (onShowToast) onShowToast(`Swapped Project #${slotIndex + 1} with "${packet.name}"`);
+    } else {
+      setResume((prev) => ({
+        ...prev,
+        projects: [
+          ...prev.projects,
+          {
+            id: `proj-${Date.now()}`,
+            name: packet.name,
+            subtitle: packet.subtitle,
+            dateRange: packet.dateRange,
+            awards: packet.awards,
+            highlights: [...packet.highlights],
+          },
+        ],
+      }));
+      if (onShowToast) onShowToast(`Inserted "${packet.name}" into resume projects`);
+    }
+    setIsSwapModalOpen(false);
+  };
+
+  const handleSaveProjectToLibrary = (proj: ProjectItem) => {
+    const packet: ProjectPacket = {
+      id: `packet-${Date.now()}`,
+      name: proj.name,
+      subtitle: proj.subtitle,
+      dateRange: proj.dateRange,
+      awards: proj.awards,
+      highlights: [...proj.highlights],
+      category: 'hardware',
+      tags: [proj.name],
+    };
+
+    if (setProjectPackets) {
+      setProjectPackets((prev) => [
+        ...prev.filter((p) => p.name.toLowerCase() !== proj.name.toLowerCase()),
+        packet,
+      ]);
+    }
+    if (onShowToast) onShowToast(`Saved "${proj.name}" packet to your library!`);
+  };
+
+  const handleDeletePacket = (packetId: string) => {
+    if (setProjectPackets) {
+      setProjectPackets((prev) => prev.filter((p) => p.id !== packetId));
+    }
+    if (onShowToast) onShowToast('Removed packet from library.');
+  };
+
+  const handleResetPacketDefaults = () => {
+    if (setProjectPackets) {
+      setProjectPackets(defaultProjectPackets);
+    }
+    if (onShowToast) onShowToast('Reset packet library to defaults.');
+  };
   const handleReset = () => {
     if (confirm('Reset resume content back to Alex Li original master?')) {
       const fresh = JSON.parse(JSON.stringify(alexLiOriginalResume));
@@ -813,12 +903,23 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
               Line breaks (Shift+Enter or Enter) in bullets are preserved.
             </p>
           </div>
-          <button
-            onClick={addProjItem}
-            className="text-xs text-black hover:underline font-medium inline-flex items-center"
-          >
-            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Project
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => handleOpenSwapModal(null)}
+              className="text-xs px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-black rounded font-medium transition-colors flex items-center"
+              title="Open your library of saved project packets"
+            >
+              <Layers className="w-3.5 h-3.5 mr-1" /> Packet Library ({activePackets.length})
+            </button>
+            <button
+              type="button"
+              onClick={addProjItem}
+              className="text-xs text-black hover:underline font-medium inline-flex items-center"
+            >
+              <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Project
+            </button>
+          </div>
         </div>
         <div className="space-y-4">
           {resume.projects.map((proj, idx) => (
@@ -827,13 +928,32 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
                 <span className="text-[11px] font-bold text-zinc-700">
                   Project #{idx + 1}
                 </span>
-                <button
-                  onClick={() => removeProjItem(idx)}
-                  className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
-                  title="Remove this project"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSwapModal(idx, proj.name)}
+                    className="text-[11px] px-2 py-0.5 bg-black hover:bg-zinc-800 text-white rounded font-medium flex items-center transition-colors shadow-2xs"
+                    title="Swap this project with a saved packet from your library"
+                  >
+                    <ArrowLeftRight className="w-3 h-3 mr-1" /> Swap Project
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveProjectToLibrary(proj)}
+                    className="text-[11px] px-2 py-0.5 border border-zinc-300 hover:border-black bg-white hover:bg-zinc-100 text-zinc-700 hover:text-black rounded font-medium flex items-center transition-colors"
+                    title="Save this project as a packet in your library"
+                  >
+                    <BookmarkPlus className="w-3 h-3 mr-1" /> Save to Library
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeProjItem(idx)}
+                    className="text-zinc-400 hover:text-red-600 p-1 transition-colors ml-1"
+                    title="Remove this project"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -937,6 +1057,27 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
           />
         </div>
       </div>
+
+      {/* Project Swap & Information Packets Modal */}
+      <ProjectSwapModal
+        isOpen={isSwapModalOpen}
+        onClose={() => setIsSwapModalOpen(false)}
+        targetSlotIndex={targetSwapSlot}
+        targetSlotName={targetSwapName}
+        packets={activePackets}
+        onSwap={handleExecuteSwap}
+        onSavePacket={(p) => {
+          if (setProjectPackets) {
+            setProjectPackets((prev) => [
+              ...prev.filter((existing) => existing.id !== p.id && existing.name.toLowerCase() !== p.name.toLowerCase()),
+              p,
+            ]);
+          }
+          if (onShowToast) onShowToast(`Added "${p.name}" to your Project Library.`);
+        }}
+        onDeletePacket={handleDeletePacket}
+        onResetDefaults={handleResetPacketDefaults}
+      />
     </div>
   );
 };
