@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ResumeData } from '@/types/resume';
 import { alexLiOriginalResume } from '@/data/defaultResume';
 import { sampleJobs } from '@/data/sampleJobs';
@@ -26,6 +26,79 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<'job' | 'resume'>('resume');
   const [fontFamily, setFontFamily] = useState<AllowedFont>('Calibri');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // 1. Load saved state from localStorage on initial client mount
+  useEffect(() => {
+    try {
+      const savedResume = localStorage.getItem('ats_resume_data');
+      if (savedResume) {
+        const parsed = JSON.parse(savedResume);
+        if (parsed && parsed.name) {
+          setResume(parsed);
+        }
+      }
+
+      const savedJob = localStorage.getItem('ats_job_description');
+      if (savedJob) {
+        setJobDescription(savedJob);
+      }
+
+      const savedFont = localStorage.getItem('ats_font_family');
+      if (savedFont && ['Calibri', 'Arial', 'Times New Roman'].includes(savedFont)) {
+        setFontFamily(savedFont as AllowedFont);
+      }
+
+      const savedTab = localStorage.getItem('ats_active_tab');
+      if (savedTab && ['preview', 'editor', 'audit'].includes(savedTab)) {
+        setActiveTab(savedTab as 'preview' | 'editor' | 'audit');
+      }
+    } catch (e) {
+      console.error('Failed to load saved ATS progress:', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // 2. Persist resume changes to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_resume_data', JSON.stringify(resume));
+    } catch (e) {
+      console.error('Failed to save resume:', e);
+    }
+  }, [resume, isLoaded]);
+
+  // 3. Persist job description changes to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_job_description', jobDescription);
+    } catch (e) {
+      console.error('Failed to save job description:', e);
+    }
+  }, [jobDescription, isLoaded]);
+
+  // 4. Persist font family changes to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_font_family', fontFamily);
+    } catch (e) {
+      console.error('Failed to save font family:', e);
+    }
+  }, [fontFamily, isLoaded]);
+
+  // 5. Persist active tab to localStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('ats_active_tab', activeTab);
+    } catch (e) {
+      console.error('Failed to save active tab:', e);
+    }
+  }, [activeTab, isLoaded]);
 
   // Analyze keywords dynamically
   const jobAnalysis = useMemo(() => {

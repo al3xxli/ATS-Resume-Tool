@@ -16,7 +16,13 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
 }) => {
   const handleReset = () => {
     if (confirm('Reset resume content back to Alex Li original master?')) {
-      setResume(JSON.parse(JSON.stringify(alexLiOriginalResume)));
+      const fresh = JSON.parse(JSON.stringify(alexLiOriginalResume));
+      setResume(fresh);
+      try {
+        localStorage.setItem('ats_resume_data', JSON.stringify(fresh));
+      } catch (e) {
+        // ignore
+      }
     }
   };
 

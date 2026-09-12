@@ -51,6 +51,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs text-zinc-500 hidden sm:inline">
               Single-Page ATS Master (.docx)
             </span>
+            <span className="text-zinc-300 hidden md:inline">•</span>
+            <span className="text-[11px] text-zinc-500 hidden md:inline-flex items-center" title="All progress is saved in your browser's persistent memory">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 inline-block"></span>
+              Saved
+            </span>
           </div>
 
           {/* Navigation View Tabs */}
