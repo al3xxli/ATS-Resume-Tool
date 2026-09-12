@@ -217,14 +217,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                       <div className="flex justify-between items-baseline text-black">
                         <div>
                           <span className="font-bold text-black">{edu.institution}</span>
-                          <span className="italic text-black"> — {edu.degree}</span>
+                          <span className="italic text-black whitespace-pre-line"> — {edu.degree}</span>
                         </div>
                         <span className="text-black shrink-0 ml-2">{edu.dateRange}</span>
                       </div>
                       {edu.details.map((detail, idx) => (
                         <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26] mt-0.5">
                           <span className="absolute left-0 top-0">•</span>
-                          <span>{detail}</span>
+                          <span className="whitespace-pre-line">{detail}</span>
                         </div>
                       ))}
                     </div>
@@ -245,7 +245,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                       <div className="flex justify-between items-baseline text-black">
                         <div>
                           <span className="font-bold text-black">{proj.name}</span>
-                          <span className="italic text-black"> — {proj.subtitle}</span>
+                          <span className="italic text-black whitespace-pre-line"> — {proj.subtitle}</span>
                         </div>
                         <span className="text-black shrink-0 ml-2">{proj.dateRange}</span>
                       </div>
@@ -258,7 +258,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                         {proj.highlights.map((bullet, idx) => (
                           <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
                             <span className="absolute left-0 top-0">•</span>
-                            <span>{bullet}</span>
+                            <span className="whitespace-pre-line">{bullet}</span>
                           </div>
                         ))}
                       </div>
@@ -280,7 +280,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                       <div className="flex justify-between items-baseline text-black">
                         <div>
                           <span className="font-bold text-black">{exp.company}</span>
-                          <span className="italic text-black"> — {exp.role}, {exp.location}</span>
+                          <span className="italic text-black whitespace-pre-line"> — {exp.role}, {exp.location}</span>
                         </div>
                         <span className="text-black shrink-0 ml-2">{exp.dateRange}</span>
                       </div>
@@ -288,7 +288,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                         {exp.highlights.map((bullet, idx) => (
                           <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
                             <span className="absolute left-0 top-0">•</span>
-                            <span>{bullet}</span>
+                            <span className="whitespace-pre-line">{bullet}</span>
                           </div>
                         ))}
                       </div>

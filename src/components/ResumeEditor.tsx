@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ResumeData, ExperienceItem, ProjectItem } from '@/types/resume';
+import { ResumeData, ExperienceItem, ProjectItem, EducationItem } from '@/types/resume';
 import { Plus, Trash2, RotateCcw } from 'lucide-react';
 import { alexLiOriginalResume } from '@/data/defaultResume';
 
@@ -20,9 +20,73 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
       setResume(fresh);
       try {
         localStorage.setItem('ats_resume_data', JSON.stringify(fresh));
-      } catch (e) {
+      } catch {
         // ignore
       }
+    }
+  };
+
+  // Education updates
+  const updateEdu = (index: number, field: keyof EducationItem, value: any) => {
+    setResume((prev) => {
+      const edu = [...(prev.education || [])];
+      edu[index] = { ...edu[index], [field]: value };
+      return { ...prev, education: edu };
+    });
+  };
+
+  const updateEduDetail = (eduIndex: number, detailIndex: number, text: string) => {
+    setResume((prev) => {
+      const edu = [...(prev.education || [])];
+      const details = [...(edu[eduIndex].details || [])];
+      details[detailIndex] = text;
+      edu[eduIndex] = { ...edu[eduIndex], details };
+      return { ...prev, education: edu };
+    });
+  };
+
+  const addEduDetail = (eduIndex: number) => {
+    setResume((prev) => {
+      const edu = [...(prev.education || [])];
+      edu[eduIndex] = {
+        ...edu[eduIndex],
+        details: [...(edu[eduIndex].details || []), 'Honors, relevant coursework, or thesis...'],
+      };
+      return { ...prev, education: edu };
+    });
+  };
+
+  const removeEduDetail = (eduIndex: number, detailIndex: number) => {
+    setResume((prev) => {
+      const edu = [...(prev.education || [])];
+      edu[eduIndex] = {
+        ...edu[eduIndex],
+        details: edu[eduIndex].details.filter((_, i) => i !== detailIndex),
+      };
+      return { ...prev, education: edu };
+    });
+  };
+
+  const addEduItem = () => {
+    setResume((prev) => {
+      const newEdu: EducationItem = {
+        id: `edu-${Date.now()}`,
+        institution: 'University of California, Berkeley',
+        degree: "Master's of Design — Design for Emerging Technologies",
+        location: 'Berkeley, CA',
+        dateRange: 'Aug 2026 - Dec 2027',
+        details: ['College of Engineering and College of Environmental Design.'],
+      };
+      return { ...prev, education: [...(prev.education || []), newEdu] };
+    });
+  };
+
+  const removeEduItem = (eduIndex: number) => {
+    if (confirm('Remove this education entry?')) {
+      setResume((prev) => ({
+        ...prev,
+        education: prev.education.filter((_, i) => i !== eduIndex),
+      }));
     }
   };
 
@@ -67,6 +131,29 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
     });
   };
 
+  const addExpItem = () => {
+    setResume((prev) => {
+      const newExp: ExperienceItem = {
+        id: `exp-${Date.now()}`,
+        company: 'Company Name',
+        role: 'Job Role',
+        location: 'City, State',
+        dateRange: 'Jan 2026 - Present',
+        highlights: ['Key achievement or technical impact with metrics...'],
+      };
+      return { ...prev, experience: [...prev.experience, newExp] };
+    });
+  };
+
+  const removeExpItem = (expIndex: number) => {
+    if (confirm('Remove this experience entry?')) {
+      setResume((prev) => ({
+        ...prev,
+        experience: prev.experience.filter((_, i) => i !== expIndex),
+      }));
+    }
+  };
+
   // Project updates
   const updateProj = (index: number, field: keyof ProjectItem, value: any) => {
     setResume((prev) => {
@@ -106,6 +193,28 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
       };
       return { ...prev, projects: projs };
     });
+  };
+
+  const addProjItem = () => {
+    setResume((prev) => {
+      const newProj: ProjectItem = {
+        id: `proj-${Date.now()}`,
+        name: 'Project Name',
+        subtitle: 'Key tools, purpose, or specs',
+        dateRange: 'Jan 2026 - May 2026',
+        highlights: ['Engineered solution resulting in measurable outcome...'],
+      };
+      return { ...prev, projects: [...prev.projects, newProj] };
+    });
+  };
+
+  const removeProjItem = (projIndex: number) => {
+    if (confirm('Remove this project entry?')) {
+      setResume((prev) => ({
+        ...prev,
+        projects: prev.projects.filter((_, i) => i !== projIndex),
+      }));
+    }
   };
 
   return (
@@ -230,14 +339,148 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         />
       </div>
 
+      {/* Education */}
+      <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+              Education
+            </h3>
+            <p className="text-[11px] text-zinc-500">
+              Line breaks (Shift+Enter or Enter) are preserved in details & degrees.
+            </p>
+          </div>
+          <button
+            onClick={addEduItem}
+            className="text-xs text-black hover:underline font-medium inline-flex items-center"
+          >
+            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add School
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {resume.education?.map((edu, idx) => (
+            <div key={edu.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
+                <span className="text-[11px] font-bold text-zinc-700">
+                  School #{idx + 1}
+                </span>
+                <button
+                  onClick={() => removeEduItem(idx)}
+                  className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
+                  title="Remove this school"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">
+                    Institution / University
+                  </label>
+                  <input
+                    type="text"
+                    value={edu.institution}
+                    onChange={(e) => updateEdu(idx, 'institution', e.target.value)}
+                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs font-bold text-black"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">
+                    Degree / Program
+                  </label>
+                  <textarea
+                    rows={1}
+                    value={edu.degree}
+                    onChange={(e) => updateEdu(idx, 'degree', e.target.value)}
+                    placeholder="Degree, major, or credentials..."
+                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">
+                    Date Range
+                  </label>
+                  <input
+                    type="text"
+                    value={edu.dateRange}
+                    onChange={(e) => updateEdu(idx, 'dateRange', e.target.value)}
+                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
+                  />
+                </div>
+              </div>
+
+              {/* Details & Bullets (Line Sensitive) */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-zinc-600 block">
+                  Details / Honors / Coursework (Line-sensitive)
+                </label>
+                {edu.details?.map((detail, dIdx) => (
+                  <div key={dIdx} className="flex items-start space-x-1.5">
+                    <span className="text-zinc-400 mt-1.5 text-xs">•</span>
+                    <textarea
+                      rows={2}
+                      value={detail}
+                      onChange={(e) => updateEduDetail(idx, dIdx, e.target.value)}
+                      placeholder="Enter detail (Shift+Enter or Enter creates line breaks)..."
+                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
+                    />
+                    <button
+                      onClick={() => removeEduDetail(idx, dIdx)}
+                      className="text-zinc-400 hover:text-black p-1 transition-colors"
+                      title="Remove detail"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => addEduDetail(idx)}
+                  className="text-xs text-black hover:underline font-medium inline-flex items-center mt-0.5"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-0.5" /> Add detail / bullet
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Experience */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-          Professional Experience
-        </h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+              Professional Experience
+            </h3>
+            <p className="text-[11px] text-zinc-500">
+              Line breaks (Shift+Enter or Enter) in bullets are preserved.
+            </p>
+          </div>
+          <button
+            onClick={addExpItem}
+            className="text-xs text-black hover:underline font-medium inline-flex items-center"
+          >
+            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Position
+          </button>
+        </div>
         <div className="space-y-4">
           {resume.experience.map((exp, idx) => (
             <div key={exp.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
+                <span className="text-[11px] font-bold text-zinc-700">
+                  Role #{idx + 1}
+                </span>
+                <button
+                  onClick={() => removeExpItem(idx)}
+                  className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
+                  title="Remove this position"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                 <div>
                   <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Company</label>
@@ -278,7 +521,8 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
                       rows={2}
                       value={bullet}
                       onChange={(e) => updateExpBullet(idx, bIdx, e.target.value)}
-                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed"
+                      placeholder="Bullet achievement (Shift+Enter for line breaks)..."
+                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
                     />
                     <button
                       onClick={() => removeExpBullet(idx, bIdx)}
@@ -303,12 +547,38 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
 
       {/* Projects */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-        <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-          Projects
-        </h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+              Projects
+            </h3>
+            <p className="text-[11px] text-zinc-500">
+              Line breaks (Shift+Enter or Enter) in bullets are preserved.
+            </p>
+          </div>
+          <button
+            onClick={addProjItem}
+            className="text-xs text-black hover:underline font-medium inline-flex items-center"
+          >
+            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Project
+          </button>
+        </div>
         <div className="space-y-4">
           {resume.projects.map((proj, idx) => (
             <div key={proj.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
+                <span className="text-[11px] font-bold text-zinc-700">
+                  Project #{idx + 1}
+                </span>
+                <button
+                  onClick={() => removeProjItem(idx)}
+                  className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
+                  title="Remove this project"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div>
                   <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Project Name</label>
@@ -349,7 +619,8 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
                       rows={2}
                       value={bullet}
                       onChange={(e) => updateProjBullet(idx, bIdx, e.target.value)}
-                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed"
+                      placeholder="Project metric or result (Shift+Enter for line breaks)..."
+                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
                     />
                     <button
                       onClick={() => removeProjBullet(idx, bIdx)}

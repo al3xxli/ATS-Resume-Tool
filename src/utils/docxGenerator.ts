@@ -19,14 +19,17 @@ export type AllowedFont = 'Calibri' | 'Arial' | 'Times New Roman';
  */
 function calculateSmartSpacing(resume: ResumeData) {
   // Count total bullet points and entries
-  const eduBullets = resume.education.reduce((acc, e) => acc + e.details.length, 0);
-  const projBullets = resume.projects.reduce((acc, p) => acc + p.highlights.length, 0);
-  const expBullets = resume.experience.reduce((acc, e) => acc + e.highlights.length, 0);
-  const skillsCount = resume.skills.length + (resume.languages.length > 0 ? 1 : 0);
+  const eduCount = resume.education?.length || 0;
+  const eduBullets = resume.education?.reduce((acc, e) => acc + (e.details?.length || 0), 0) || 0;
+  const projCount = resume.projects?.length || 0;
+  const projBullets = resume.projects?.reduce((acc, p) => acc + (p.highlights?.length || 0), 0) || 0;
+  const expCount = resume.experience?.length || 0;
+  const expBullets = resume.experience?.reduce((acc, e) => acc + (e.highlights?.length || 0), 0) || 0;
+  const skillsCount = (resume.skills?.length || 0) + (resume.languages && resume.languages.length > 0 ? 1 : 0);
   const totalItems =
-    resume.education.length +
-    resume.projects.length +
-    resume.experience.length +
+    eduCount +
+    projCount +
+    expCount +
     eduBullets +
     projBullets +
     expBullets +
@@ -128,6 +131,37 @@ export async function generateAtsDocx(
     });
   };
 
+  // Helper for line-sensitive text runs (preserves soft line breaks from Shift+Enter or Enter)
+  const createLineSensitiveRuns = (
+    text: string,
+    options: {
+      size: number;
+      font: AllowedFont;
+      bold?: boolean;
+      italics?: boolean;
+      color?: string;
+    }
+  ): TextRun[] => {
+    const lines = text.split('\n');
+    const runs: TextRun[] = [];
+    lines.forEach((line, idx) => {
+      if (idx > 0) {
+        runs.push(new TextRun({ break: 1 }));
+      }
+      runs.push(
+        new TextRun({
+          text: line,
+          size: options.size,
+          font: options.font,
+          bold: options.bold,
+          italics: options.italics,
+          color: options.color || '000000',
+        })
+      );
+    });
+    return runs;
+  };
+
   // 1. Candidate Name (Centered, 18pt Bold, Black)
   children.push(
     new Paragraph({
@@ -189,114 +223,108 @@ export async function generateAtsDocx(
 
   // 4. Concise Summary / Positioning Statement (10pt, line-sensitive)
   if (resume.summary) {
-    const summaryLines = resume.summary.split('\n');
-    const summaryChildren: TextRun[] = [];
-
-    summaryLines.forEach((lineText, idx) => {
-      if (idx > 0) {
-        summaryChildren.push(new TextRun({ break: 1 }));
-      }
-      summaryChildren.push(
-        new TextRun({
-          text: lineText,
-          size: 20, // 10pt
-          font: fontFamily,
-          color: '000000',
-        })
-      );
-    });
-
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { after: spacing.summaryAfter, line: spacing.lineSpacing },
-        children: summaryChildren,
+        children: createLineSensitiveRuns(resume.summary, {
+          size: 20, // 10pt
+          font: fontFamily,
+        }),
       })
     );
   }
 
-  // 5. Education
+  // 5. Education (Line-sensitive)
   if (resume.education && resume.education.length > 0) {
     children.push(createSectionHeader('Education'));
 
     resume.education.forEach((edu) => {
+      const headingRuns: TextRun[] = [
+        new TextRun({
+          text: edu.institution,
+          bold: true,
+          size: 21, // 10.5pt
+          font: fontFamily,
+          color: '000000',
+        }),
+        ...createLineSensitiveRuns(` — ${edu.degree}`, {
+          italics: true,
+          size: 20, // 10pt
+          font: fontFamily,
+        }),
+      ];
+
+      if (edu.dateRange) {
+        headingRuns.push(
+          new TextRun({
+            text: `  (${edu.dateRange})`,
+            size: 20, // 10pt
+            font: fontFamily,
+            color: '000000',
+          })
+        );
+      }
+
       children.push(
         new Paragraph({
           spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
-          children: [
-            new TextRun({
-              text: edu.institution,
-              bold: true,
-              size: 21, // 10.5pt
-              font: fontFamily,
-              color: '000000',
-            }),
-            new TextRun({
-              text: ` — ${edu.degree}`,
-              italics: true,
-              size: 20, // 10pt
-              font: fontFamily,
-              color: '000000',
-            }),
-            new TextRun({
-              text: `  (${edu.dateRange})`,
-              size: 20, // 10pt
-              font: fontFamily,
-              color: '000000',
-            }),
-          ],
+          children: headingRuns,
         })
       );
 
-      edu.details.forEach((detail) => {
-        children.push(
-          new Paragraph({
-            bullet: { level: 0 },
-            spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
-            children: [
-              new TextRun({
-                text: detail,
+      if (edu.details && edu.details.length > 0) {
+        edu.details.forEach((detail) => {
+          children.push(
+            new Paragraph({
+              bullet: { level: 0 },
+              spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
+              children: createLineSensitiveRuns(detail, {
                 size: 20, // 10pt
                 font: fontFamily,
-                color: '000000',
               }),
-            ],
-          })
-        );
-      });
+            })
+          );
+        });
+      }
     });
   }
 
-  // 6. Projects
+  // 6. Projects (Line-sensitive)
   if (resume.projects && resume.projects.length > 0) {
     children.push(createSectionHeader('Projects'));
 
     resume.projects.forEach((proj) => {
+      const projHeadingRuns: TextRun[] = [
+        new TextRun({
+          text: proj.name,
+          bold: true,
+          size: 21, // 10.5pt
+          font: fontFamily,
+          color: '000000',
+        }),
+        ...createLineSensitiveRuns(` — ${proj.subtitle}`, {
+          italics: true,
+          size: 20, // 10pt
+          font: fontFamily,
+        }),
+      ];
+
+      if (proj.dateRange) {
+        projHeadingRuns.push(
+          new TextRun({
+            text: `  (${proj.dateRange})`,
+            size: 20, // 10pt
+            font: fontFamily,
+            color: '000000',
+          })
+        );
+      }
+
       children.push(
         new Paragraph({
           spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
-          children: [
-            new TextRun({
-              text: proj.name,
-              bold: true,
-              size: 21, // 10.5pt
-              font: fontFamily,
-              color: '000000',
-            }),
-            new TextRun({
-              text: ` — ${proj.subtitle}`,
-              italics: true,
-              size: 20, // 10pt
-              font: fontFamily,
-              color: '000000',
-            }),
-            new TextRun({
-              text: `  (${proj.dateRange})`,
-              size: 20, // 10pt
-              font: fontFamily,
-              color: '000000',
-            }),
-          ],
+          children: projHeadingRuns,
         })
       );
 
@@ -317,74 +345,75 @@ export async function generateAtsDocx(
         );
       }
 
-      proj.highlights.forEach((bullet) => {
-        children.push(
-          new Paragraph({
-            bullet: { level: 0 },
-            spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
-            children: [
-              new TextRun({
-                text: bullet,
+      if (proj.highlights && proj.highlights.length > 0) {
+        proj.highlights.forEach((bullet) => {
+          children.push(
+            new Paragraph({
+              bullet: { level: 0 },
+              spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
+              children: createLineSensitiveRuns(bullet, {
                 size: 20, // 10pt
                 font: fontFamily,
-                color: '000000',
               }),
-            ],
-          })
-        );
-      });
+            })
+          );
+        });
+      }
     });
   }
 
-  // 7. Professional Experience
+  // 7. Professional Experience (Line-sensitive)
   if (resume.experience && resume.experience.length > 0) {
     children.push(createSectionHeader('Professional Experience'));
 
     resume.experience.forEach((exp) => {
+      const expHeadingRuns: TextRun[] = [
+        new TextRun({
+          text: exp.company,
+          bold: true,
+          size: 21, // 10.5pt
+          font: fontFamily,
+          color: '000000',
+        }),
+        ...createLineSensitiveRuns(` — ${exp.role}, ${exp.location}`, {
+          italics: true,
+          size: 20, // 10pt
+          font: fontFamily,
+        }),
+      ];
+
+      if (exp.dateRange) {
+        expHeadingRuns.push(
+          new TextRun({
+            text: `  (${exp.dateRange})`,
+            size: 20, // 10pt
+            font: fontFamily,
+            color: '000000',
+          })
+        );
+      }
+
       children.push(
         new Paragraph({
           spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
-          children: [
-            new TextRun({
-              text: exp.company,
-              bold: true,
-              size: 21, // 10.5pt
-              font: fontFamily,
-              color: '000000',
-            }),
-            new TextRun({
-              text: ` — ${exp.role}, ${exp.location}`,
-              italics: true,
-              size: 20, // 10pt
-              font: fontFamily,
-              color: '000000',
-            }),
-            new TextRun({
-              text: `  (${exp.dateRange})`,
-              size: 20, // 10pt
-              font: fontFamily,
-              color: '000000',
-            }),
-          ],
+          children: expHeadingRuns,
         })
       );
 
-      exp.highlights.forEach((bullet) => {
-        children.push(
-          new Paragraph({
-            bullet: { level: 0 },
-            spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
-            children: [
-              new TextRun({
-                text: bullet,
+      if (exp.highlights && exp.highlights.length > 0) {
+        exp.highlights.forEach((bullet) => {
+          children.push(
+            new Paragraph({
+              bullet: { level: 0 },
+              spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
+              children: createLineSensitiveRuns(bullet, {
                 size: 20, // 10pt
                 font: fontFamily,
-                color: '000000',
               }),
-            ],
-          })
-        );
-      });
+            })
+          );
+        });
+      }
     });
   }
 
