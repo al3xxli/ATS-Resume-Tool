@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/genai": "^2.22.0",
+    "@google/generative-ai": "^0.24.1",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
     "file-saver": "^2.0.5",

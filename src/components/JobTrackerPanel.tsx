@@ -49,7 +49,7 @@ export const JobTrackerPanel: React.FC<JobTrackerPanelProps> = ({
 
   // Open inline save form
   const openSaveNewForm = () => {
-    setNewCompany('');
+    setNewCompany(jobAnalysis.company || '');
     setNewTitle(currentResume.targetJobTitle || jobAnalysis.jobTitle || 'Target Position');
     setIsSavingNew(true);
   };

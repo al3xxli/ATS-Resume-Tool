@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
   UploadCloud,
@@ -8,6 +8,15 @@ import {
   Plus,
   Briefcase,
   FileText,
+  KeyRound,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  X,
+  Loader2,
+  Wand2,
+  Info,
 } from 'lucide-react';
 import { ResumeData, JobAnalysisResult } from '@/types/resume';
 import { singleSampleJob } from '@/data/sampleJobs';
@@ -19,6 +28,8 @@ interface JobPanelProps {
   jobDescription: string;
   setJobDescription: (text: string) => void;
   jobAnalysis: JobAnalysisResult;
+  onAiAlignSuccess?: (result: JobAnalysisResult) => void;
+  onShowToast?: (msg: string) => void;
 }
 
 export const JobPanel: React.FC<JobPanelProps> = ({
@@ -27,10 +38,33 @@ export const JobPanel: React.FC<JobPanelProps> = ({
   jobDescription,
   setJobDescription,
   jobAnalysis,
+  onAiAlignSuccess,
+  onShowToast,
 }) => {
   const [filter, setFilter] = useState<'all' | 'matched' | 'missing'>('all');
-  const [isAligning, setIsAligning] = useState(false);
+  const [isAiAligning, setIsAiAligning] = useState(false);
+  const [isHeuristicAligning, setIsHeuristicAligning] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [tempKey, setTempKey] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [showRationale, setShowRationale] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load API key from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedKey = localStorage.getItem('ats_gemini_api_key');
+      if (savedKey) {
+        setApiKey(savedKey);
+        setTempKey(savedKey);
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   // Load single sample job
   const handleLoadSample = () => {
@@ -39,6 +73,7 @@ export const JobPanel: React.FC<JobPanelProps> = ({
       ...prev,
       targetJobTitle: singleSampleJob.title,
     }));
+    if (onShowToast) onShowToast('Loaded sample job posting.');
   };
 
   // Handle file upload
@@ -51,33 +86,135 @@ export const JobPanel: React.FC<JobPanelProps> = ({
       const content = event.target?.result as string;
       if (content) {
         setJobDescription(content);
+        if (onShowToast) onShowToast(`Uploaded ${file.name}`);
       }
     };
     reader.readAsText(file);
   };
 
-  // Auto-Align Resume
-  const handleAutoAlign = () => {
-    setIsAligning(true);
+  // Offline Heuristic Auto-Align Resume
+  const handleHeuristicAlign = () => {
+    setIsHeuristicAligning(true);
     setTimeout(() => {
       const updated = alignResumeWithJob(resume, jobAnalysis);
       setResume(updated);
-      setIsAligning(false);
-    }, 200);
+      setIsHeuristicAligning(false);
+      if (onShowToast) onShowToast('Offline heuristic alignment applied.');
+    }, 150);
   };
 
-  // Add keyword to skills
+  // Gemini AI Auto-Align Resume
+  const handleAiAlign = async (overrideKey?: string) => {
+    if (!jobDescription.trim()) {
+      if (onShowToast) onShowToast('Please paste a job description first.');
+      return;
+    }
+
+    const keyToUse = overrideKey !== undefined ? overrideKey.trim() : apiKey.trim();
+    setIsAiAligning(true);
+    setAiError(null);
+
+    try {
+      const res = await fetch('/api/align', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription,
+          currentResume: resume,
+          clientApiKey: keyToUse || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.code === 'MISSING_API_KEY') {
+          setShowKeyModal(true);
+          setAiError('Please enter your Google AI Studio API key to enable Gemini AI.');
+        } else {
+          setAiError(data.error || 'Failed to align with Gemini AI.');
+        }
+        return;
+      }
+
+      // Success: Apply tailored updates to resume
+      setResume((prev) => ({
+        ...prev,
+        targetJobTitle: data.jobTitle || prev.targetJobTitle,
+        summary: data.tailoredSummary || prev.summary,
+        skills:
+          data.recommendedSkills && data.recommendedSkills.length > 0
+            ? data.recommendedSkills
+            : prev.skills,
+      }));
+
+      // Pass rich analysis to parent
+      if (onAiAlignSuccess) {
+        onAiAlignSuccess({
+          ...data,
+          isAiGenerated: true,
+        });
+      }
+
+      setShowKeyModal(false);
+      if (onShowToast) {
+        onShowToast(
+          `Gemini AI: Extracted "${data.jobTitle}" & tailored 2-line summary inside 25–35 sweet spot!`
+        );
+      }
+    } catch (err: any) {
+      console.error('Gemini Alignment Error:', err);
+      setAiError(err?.message || 'Network error communicating with alignment service.');
+    } finally {
+      setIsAiAligning(false);
+    }
+  };
+
+  // Save API Key to localStorage & trigger AI alignment
+  const handleSaveKeyAndAlign = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanKey = tempKey.trim();
+    try {
+      if (cleanKey) {
+        localStorage.setItem('ats_gemini_api_key', cleanKey);
+        setApiKey(cleanKey);
+      } else {
+        localStorage.removeItem('ats_gemini_api_key');
+        setApiKey('');
+      }
+    } catch {
+      // Ignore localStorage write error
+    }
+    handleAiAlign(cleanKey);
+  };
+
+  // Clear stored key
+  const handleClearKey = () => {
+    try {
+      localStorage.removeItem('ats_gemini_api_key');
+    } catch {}
+    setApiKey('');
+    setTempKey('');
+    setAiError(null);
+    if (onShowToast) onShowToast('Stored API key removed.');
+  };
+
+  // Add keyword to skills manually
   const handleAddKeywordToSkills = (keyword: string) => {
     setResume((prev) => {
       const newSkills = [...prev.skills];
       if (newSkills.length > 0) {
-        newSkills[0] = {
-          ...newSkills[0],
-          items: [...newSkills[0].items, keyword],
-        };
+        // Prevent duplicate
+        if (!newSkills[0].items.includes(keyword)) {
+          newSkills[0] = {
+            ...newSkills[0],
+            items: [...newSkills[0].items, keyword],
+          };
+        }
       }
       return { ...prev, skills: newSkills };
     });
+    if (onShowToast) onShowToast(`Added "${keyword}" to skills`);
   };
 
   const filteredKeywords = jobAnalysis.keywords.filter((k) => {
@@ -106,8 +243,9 @@ export const JobPanel: React.FC<JobPanelProps> = ({
         </div>
 
         <p className="text-xs text-zinc-600 leading-normal">
-          Paste the job posting below. The engine extracts exact keywords to target the{' '}
-          <strong className="text-black">25–35 sweet spot</strong> and syncs the exact job title.
+          Paste any job posting (LinkedIn, Greenhouse, Lever, Workday). The engine strips
+          boilerplate, extracts exact keywords for the{' '}
+          <strong className="text-black">25–35 sweet spot</strong>, and syncs the exact title.
         </p>
       </div>
 
@@ -136,43 +274,161 @@ export const JobPanel: React.FC<JobPanelProps> = ({
 
         <textarea
           id="job-input"
-          rows={6}
+          rows={5}
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
-          placeholder="Paste job description here..."
+          placeholder="Paste full job posting text here..."
           className="w-full text-xs font-mono text-black p-2.5 bg-zinc-50 border border-zinc-300 rounded focus:outline-none focus:border-black transition-all resize-y"
         />
       </div>
 
-      {/* Target Title Match */}
-      <div className="p-4 border-b border-zinc-200 bg-zinc-50 flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
-            Target Job Title (10.6x Callback Rule)
-          </span>
-          <span className="text-xs font-bold text-black">{resume.targetJobTitle}</span>
+      {/* Target Title & Company Match */}
+      <div className="p-3.5 border-b border-zinc-200 bg-zinc-50 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
+              Target Job Title (Rule #2: 10.6x Callback)
+            </span>
+            <div className="flex items-baseline space-x-1.5 flex-wrap">
+              <span className="text-xs font-bold text-black">{resume.targetJobTitle}</span>
+              {jobAnalysis.company && (
+                <span className="text-[11px] text-zinc-600 font-medium">
+                  @ {jobAnalysis.company}
+                </span>
+              )}
+              {jobAnalysis.isAiGenerated && (
+                <span className="inline-flex items-center text-[9px] bg-zinc-200 text-black px-1.5 py-0.5 rounded font-mono font-medium">
+                  Gemini AI
+                </span>
+              )}
+            </div>
+          </div>
+
+          {jobAnalysis.jobTitle &&
+            jobAnalysis.jobTitle.toLowerCase() !== resume.targetJobTitle.toLowerCase() && (
+              <button
+                onClick={() =>
+                  setResume((prev) => ({ ...prev, targetJobTitle: jobAnalysis.jobTitle }))
+                }
+                className="text-xs px-2.5 py-1 bg-black text-white rounded font-medium hover:bg-zinc-800 transition-colors shrink-0"
+              >
+                Sync Title
+              </button>
+            )}
         </div>
 
-        {jobAnalysis.jobTitle && jobAnalysis.jobTitle.toLowerCase() !== resume.targetJobTitle.toLowerCase() && (
-          <button
-            onClick={() =>
-              setResume((prev) => ({ ...prev, targetJobTitle: jobAnalysis.jobTitle }))
-            }
-            className="text-xs px-2.5 py-1 bg-black text-white rounded font-medium hover:bg-zinc-800 transition-colors"
-          >
-            Sync Title
-          </button>
+        {/* AI Rationale Dropdown if present */}
+        {jobAnalysis.rationale && (
+          <div className="pt-1">
+            <button
+              onClick={() => setShowRationale((prev) => !prev)}
+              className="text-[10px] text-zinc-500 hover:text-black flex items-center font-medium"
+            >
+              <Info className="w-3 h-3 mr-1" />
+              {showRationale ? 'Hide AI Alignment Rationale' : 'View AI Alignment Rationale'}
+            </button>
+            {showRationale && (
+              <p className="text-[11px] text-zinc-700 bg-white p-2 rounded border border-zinc-200 mt-1 leading-relaxed">
+                {jobAnalysis.rationale}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Keyword Sweet Spot Summary */}
-      <div className="p-4 border-b border-zinc-200 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div>
+      {/* Auto-Align Actions & Keyword Sweet Spot Summary */}
+      <div className="p-4 border-b border-zinc-200 space-y-3">
+        {/* Alignment Action Buttons */}
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handleAiAlign()}
+              disabled={isAiAligning || !jobDescription.trim()}
+              className="flex-1 py-2 px-3 bg-black hover:bg-zinc-800 text-white font-semibold rounded text-xs transition-colors disabled:opacity-50 flex items-center justify-center shadow-xs"
+              title="Align format-agnostically with Gemini AI"
+            >
+              {isAiAligning ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-zinc-300" />
+                  <span>Aligning with Gemini...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5 text-zinc-200" />
+                  <span>AI Auto-Align (Gemini)</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setTempKey(apiKey);
+                setShowKeyModal(true);
+                setAiError(null);
+              }}
+              className={`p-2 rounded border transition-colors ${
+                apiKey
+                  ? 'border-zinc-400 bg-zinc-100 text-black hover:bg-zinc-200'
+                  : 'border-zinc-300 text-zinc-600 hover:text-black hover:border-black'
+              }`}
+              title="Configure Gemini API Key"
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] px-0.5">
+            <button
+              onClick={handleHeuristicAlign}
+              disabled={isHeuristicAligning || !jobDescription.trim()}
+              className="text-zinc-500 hover:text-black transition-colors flex items-center font-medium underline underline-offset-2"
+            >
+              <Wand2 className="w-3 h-3 mr-1" />
+              {isHeuristicAligning ? 'Running...' : 'Run Offline Heuristic'}
+            </button>
+
+            {apiKey ? (
+              <span className="text-[10px] text-zinc-500 font-mono flex items-center">
+                <Check className="w-3 h-3 mr-0.5 text-black" /> Key Saved
+              </span>
+            ) : (
+              <span className="text-[10px] text-zinc-400 font-mono">No Key (Fallback)</span>
+            )}
+          </div>
+        </div>
+
+        {/* Inline Error if AI Alignment fails */}
+        {aiError && (
+          <div className="p-2.5 bg-zinc-100 border border-zinc-300 rounded text-[11px] text-zinc-800 flex items-start space-x-2">
+            <AlertCircle className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+            <div className="flex-1 leading-snug">
+              <span>{aiError}</span>
+              <button
+                onClick={() => setShowKeyModal(true)}
+                className="block text-black font-semibold underline mt-1 hover:text-zinc-700"
+              >
+                Configure API Key
+              </button>
+            </div>
+            <button onClick={() => setAiError(null)} className="text-zinc-400 hover:text-black">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Progress & Sweet Spot Meter */}
+        <div className="pt-1 space-y-1.5">
+          <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-black">
               Keywords: {jobAnalysis.matchedCount} / {jobAnalysis.totalKeywordsExtracted}
             </span>
-            <span className="text-[11px] text-zinc-600 block">
+            <span
+              className={`text-[11px] font-medium ${
+                jobAnalysis.sweetSpotStatus === 'optimal'
+                  ? 'text-black'
+                  : 'text-zinc-600'
+              }`}
+            >
               {jobAnalysis.sweetSpotStatus === 'optimal'
                 ? 'Inside 25–35 Sweet Spot'
                 : jobAnalysis.sweetSpotStatus === 'under'
@@ -181,27 +437,17 @@ export const JobPanel: React.FC<JobPanelProps> = ({
             </span>
           </div>
 
-          <button
-            onClick={handleAutoAlign}
-            disabled={isAligning}
-            className="text-xs px-3 py-1.5 bg-black text-white font-semibold rounded hover:bg-zinc-800 active:bg-zinc-900 transition-colors disabled:opacity-50 flex items-center"
-          >
-            <Sparkles className="w-3.5 h-3.5 mr-1" />
-            {isAligning ? 'Aligning...' : 'Auto-Align'}
-          </button>
-        </div>
-
-        {/* Minimalist Progress Meter */}
-        <div className="relative h-2 bg-zinc-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-black transition-all duration-300 rounded-full"
-            style={{ width: `${Math.min(100, (jobAnalysis.matchedCount / 35) * 100)}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
-          <span>0</span>
-          <span>Target: 25–35</span>
-          <span>40+</span>
+          <div className="relative h-2 bg-zinc-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-black transition-all duration-300 rounded-full"
+              style={{ width: `${Math.min(100, (jobAnalysis.matchedCount / 35) * 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
+            <span>0</span>
+            <span>Target: 25–35</span>
+            <span>40+</span>
+          </div>
         </div>
       </div>
 
@@ -215,7 +461,9 @@ export const JobPanel: React.FC<JobPanelProps> = ({
             <button
               onClick={() => setFilter('all')}
               className={`px-2 py-0.5 rounded ${
-                filter === 'all' ? 'bg-black text-white font-medium' : 'text-zinc-600 hover:text-black'
+                filter === 'all'
+                  ? 'bg-black text-white font-medium'
+                  : 'text-zinc-600 hover:text-black'
               }`}
             >
               All
@@ -223,7 +471,9 @@ export const JobPanel: React.FC<JobPanelProps> = ({
             <button
               onClick={() => setFilter('matched')}
               className={`px-2 py-0.5 rounded ${
-                filter === 'matched' ? 'bg-black text-white font-medium' : 'text-zinc-600 hover:text-black'
+                filter === 'matched'
+                  ? 'bg-black text-white font-medium'
+                  : 'text-zinc-600 hover:text-black'
               }`}
             >
               Matched ({jobAnalysis.matchedCount})
@@ -231,7 +481,9 @@ export const JobPanel: React.FC<JobPanelProps> = ({
             <button
               onClick={() => setFilter('missing')}
               className={`px-2 py-0.5 rounded ${
-                filter === 'missing' ? 'bg-black text-white font-medium' : 'text-zinc-600 hover:text-black'
+                filter === 'missing'
+                  ? 'bg-black text-white font-medium'
+                  : 'text-zinc-600 hover:text-black'
               }`}
             >
               Missing
@@ -239,11 +491,11 @@ export const JobPanel: React.FC<JobPanelProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1 max-h-60 overflow-y-auto">
+        <div className="flex flex-wrap gap-1.5 max-h-64 overflow-y-auto">
           {filteredKeywords.map((k) => (
             <span
               key={k.keyword}
-              className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded border ${
+              className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded border transition-colors ${
                 k.matched
                   ? 'bg-zinc-100 border-zinc-300 text-black font-medium'
                   : 'bg-white border-zinc-200 text-zinc-500'
@@ -265,6 +517,111 @@ export const JobPanel: React.FC<JobPanelProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Gemini AI Settings Modal */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg border border-zinc-300 max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-black" />
+                <h3 className="text-sm font-bold text-black">Google Gemini AI Alignment</h3>
+              </div>
+              <button
+                onClick={() => setShowKeyModal(false)}
+                className="text-zinc-400 hover:text-black"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              Format-agnostic job extraction uses Google Gemini (<code className="bg-zinc-100 px-1 py-0.5 rounded font-mono text-[11px]">gemini-2.5-flash</code>) to strip boilerplate (EEO, benefits, pay ranges) and tailor the 2-line summary to the exact target job title.
+            </p>
+
+            <form onSubmit={handleSaveKeyAndAlign} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-black mb-1">
+                  Google AI Studio API Key (Free)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={tempKey}
+                    onChange={(e) => setTempKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full text-xs font-mono p-2 pr-9 border border-zinc-300 rounded focus:outline-none focus:border-black"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black"
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  Keys are stored locally in your browser (<code className="font-mono">localStorage</code>) and never logged.
+                </span>
+              </div>
+
+              <div className="pt-1">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-black font-medium underline flex items-center hover:text-zinc-700"
+                >
+                  Get free API key from Google AI Studio
+                  <ExternalLink className="w-3 h-3 ml-1" />
+                </a>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-200">
+                <div>
+                  {apiKey && (
+                    <button
+                      type="button"
+                      onClick={handleClearKey}
+                      className="text-xs text-zinc-500 hover:text-black font-medium"
+                    >
+                      Clear Key
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowKeyModal(false);
+                      handleHeuristicAlign();
+                    }}
+                    className="text-xs px-3 py-1.5 border border-zinc-300 rounded font-medium hover:bg-zinc-100 transition-colors"
+                  >
+                    Use Offline Heuristic
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isAiAligning}
+                    className="text-xs px-3.5 py-1.5 bg-black text-white font-semibold rounded hover:bg-zinc-800 transition-colors flex items-center"
+                  >
+                    {isAiAligning ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Aligning...
+                      </>
+                    ) : (
+                      'Save & Align'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

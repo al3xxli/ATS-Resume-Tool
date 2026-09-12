@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ResumeData } from '@/types/resume';
+import { ResumeData, JobAnalysisResult } from '@/types/resume';
 import { alexLiOriginalResume } from '@/data/defaultResume';
 import { sampleJobs } from '@/data/sampleJobs';
-import { analyzeJobKeywords } from '@/utils/keywordEngine';
+import { analyzeJobKeywords, recountKeywordsForResume } from '@/utils/keywordEngine';
 import { runAtsAudit } from '@/utils/atsAudit';
 import { generateAtsPlainText } from '@/utils/plaintextGenerator';
 import { AllowedFont } from '@/utils/docxGenerator';
@@ -32,6 +32,13 @@ export default function Home() {
   const [fontFamily, setFontFamily] = useState<AllowedFont>('Calibri');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<JobAnalysisResult | null>(null);
+
+  // Handle setting job description and resetting previous AI analysis
+  const handleSetJobDescription = (text: string) => {
+    setJobDescription(text);
+    setAiAnalysisResult(null);
+  };
 
   // 1. Load saved state from localStorage on initial client mount
   useEffect(() => {
@@ -138,10 +145,13 @@ export default function Home() {
     }
   }, [showTracker, isLoaded]);
 
-  // Analyze keywords dynamically
+  // Analyze keywords dynamically (prioritizes Gemini AI analysis if available)
   const jobAnalysis = useMemo(() => {
+    if (aiAnalysisResult) {
+      return recountKeywordsForResume(aiAnalysisResult, resume);
+    }
     return analyzeJobKeywords(jobDescription, resume);
-  }, [jobDescription, resume]);
+  }, [aiAnalysisResult, jobDescription, resume]);
 
   // Run ATS audit dynamically
   const auditResult = useMemo(() => {
@@ -247,8 +257,10 @@ export default function Home() {
             resume={resume}
             setResume={setResume}
             jobDescription={jobDescription}
-            setJobDescription={setJobDescription}
+            setJobDescription={handleSetJobDescription}
             jobAnalysis={jobAnalysis}
+            onAiAlignSuccess={setAiAnalysisResult}
+            onShowToast={showToast}
           />
         </aside>
 
@@ -290,7 +302,7 @@ export default function Home() {
             currentResume={resume}
             setResume={setResume}
             currentJobDescription={jobDescription}
-            setJobDescription={setJobDescription}
+            setJobDescription={handleSetJobDescription}
             jobAnalysis={jobAnalysis}
             fontFamily={fontFamily}
             onClose={() => setShowTracker(false)}

@@ -60,12 +60,17 @@ export interface KeywordMatch {
 
 export interface JobAnalysisResult {
   jobTitle: string;
+  company?: string;
   totalKeywordsExtracted: number;
   keywords: KeywordMatch[];
   matchedCount: number;
   densityScore: number; // 0-100
   sweetSpotStatus: 'under' | 'optimal' | 'over'; // <25: under, 25-35: optimal, >35: over
   recommendation: string;
+  tailoredSummary?: string;
+  recommendedSkills?: SkillCategory[];
+  rationale?: string;
+  isAiGenerated?: boolean;
 }
 
 export interface AuditCheckItem {
