@@ -32,40 +32,40 @@ function calculateSmartSpacing(resume: ResumeData) {
     expBullets +
     skillsCount;
 
-  // If content is concise (e.g. <= 30 elements), expand spacing to fill the page
+  // If content is concise (e.g. <= 30 elements), evenly distribute spacing across sections and sub-sections
   if (totalItems <= 26) {
     return {
       topMargin: 864, // 0.6 in
       bottomMargin: 864, // 0.6 in
       sideMargin: 936, // 0.65 in
-      lineSpacing: 310, // ~1.3 line spacing (improves white space)
-      nameAfter: 60,
-      titleAfter: 70,
-      contactAfter: 130,
-      summaryAfter: 200,
-      sectionBefore: 280,
-      sectionAfter: 90,
-      itemBefore: 150,
-      itemAfter: 45,
-      bulletAfter: 65,
-      skillAfter: 65,
+      lineSpacing: 300, // ~1.25 line spacing
+      nameAfter: 50,
+      titleAfter: 60,
+      contactAfter: 110,
+      summaryAfter: 160,
+      sectionBefore: 220, // 11pt before section header
+      sectionAfter: 60,
+      itemBefore: 180, // 9pt before each sub-section for even rhythm
+      itemAfter: 35,
+      bulletAfter: 55,
+      skillAfter: 55,
     };
   } else if (totalItems <= 32) {
     return {
       topMargin: 864,
       bottomMargin: 864,
       sideMargin: 936,
-      lineSpacing: 290, // ~1.2 line spacing
+      lineSpacing: 285,
       nameAfter: 40,
       titleAfter: 50,
-      contactAfter: 100,
-      summaryAfter: 160,
-      sectionBefore: 220,
-      sectionAfter: 70,
-      itemBefore: 120,
-      itemAfter: 35,
-      bulletAfter: 45,
-      skillAfter: 45,
+      contactAfter: 90,
+      summaryAfter: 140,
+      sectionBefore: 180,
+      sectionAfter: 50,
+      itemBefore: 140,
+      itemAfter: 30,
+      bulletAfter: 40,
+      skillAfter: 40,
     };
   } else {
     // Dense content: compact spacing to protect 1-page boundary

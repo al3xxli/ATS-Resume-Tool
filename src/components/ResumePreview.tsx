@@ -211,7 +211,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                 <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   EDUCATION
                 </h2>
-                <div className="space-y-1.5 text-[13px]">
+                <div className="space-y-3.5 text-[13px]">
                   {resume.education.map((edu) => (
                     <div key={edu.id}>
                       <div className="flex justify-between items-baseline text-black">
@@ -222,7 +222,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                         <span className="text-black shrink-0 ml-2">{edu.dateRange}</span>
                       </div>
                       {edu.details.map((detail, idx) => (
-                        <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
+                        <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26] mt-0.5">
                           <span className="absolute left-0 top-0">•</span>
                           <span>{detail}</span>
                         </div>
@@ -239,7 +239,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                 <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   PROJECTS
                 </h2>
-                <div className="space-y-2 text-[13px]">
+                <div className="space-y-3.5 text-[13px]">
                   {resume.projects.map((proj) => (
                     <div key={proj.id}>
                       <div className="flex justify-between items-baseline text-black">
@@ -274,7 +274,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                 <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   PROFESSIONAL EXPERIENCE
                 </h2>
-                <div className="space-y-2 text-[13px]">
+                <div className="space-y-3.5 text-[13px]">
                   {resume.experience.map((exp) => (
                     <div key={exp.id}>
                       <div className="flex justify-between items-baseline text-black">
@@ -304,7 +304,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                 <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
                   TECHNICAL SKILLS
                 </h2>
-                <div className="space-y-1 text-[13px] text-black leading-[1.26]">
+                <div className="space-y-1.5 text-[13px] text-black leading-[1.26]">
                   {resume.skills.map((cat, idx) => (
                     <div key={idx}>
                       <span className="font-bold text-black">{cat.category}: </span>
