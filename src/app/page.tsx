@@ -18,6 +18,7 @@ import { initialTrackedJobs } from '@/data/defaultJobs';
 import { TrackedJob } from '@/types/jobTracker';
 import { ProjectPacket } from '@/types/packets';
 import { defaultProjectPackets } from '@/data/defaultPackets';
+import { PdfUploadModal } from '@/components/PdfUploadModal';
 import { Check } from 'lucide-react';
 
 export default function Home() {
@@ -36,6 +37,7 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<JobAnalysisResult | null>(null);
   const [projectPackets, setProjectPackets] = useState<ProjectPacket[]>(defaultProjectPackets);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   // Handle setting job description and resetting previous AI analysis
   const handleSetJobDescription = (text: string) => {
@@ -198,6 +200,33 @@ export default function Home() {
     }
   };
 
+  // Apply newly parsed PDF resume
+  const handleApplyParsedResume = (
+    newResume: ResumeData,
+    backupToTracker: boolean,
+    fileName: string
+  ) => {
+    if (backupToTracker) {
+      const backupJob: TrackedJob = {
+        id: `backup-${Date.now()}`,
+        company: 'Active Resume (Saved Before PDF Import)',
+        jobTitle: resume.targetJobTitle || 'Previous Resume Backup',
+        status: 'archived',
+        dateAdded: new Date().toISOString().split('T')[0],
+        dateApplied: new Date().toISOString().split('T')[0],
+        jobDescription: jobDescription,
+        savedResume: JSON.parse(JSON.stringify(resume)),
+        matchedKeywordsCount: jobAnalysis.matchedCount,
+        notes: `Auto-saved before importing ${fileName}`,
+      };
+      setJobs((prev) => [backupJob, ...prev]);
+    }
+
+    setResume(newResume);
+    setActiveTab('preview');
+    showToast(`"${fileName}" imported! Review your ATS score and keyword alignment.`);
+  };
+
   // Trigger browser print
   const handlePrint = () => {
     window.print();
@@ -221,6 +250,7 @@ export default function Home() {
         jobsCount={jobs.length}
         showTracker={showTracker}
         setShowTracker={setShowTracker}
+        onOpenPdfUpload={() => setIsPdfModalOpen(true)}
         onCopyPlaintext={handleCopyPlaintext}
         onPrint={handlePrint}
         activeTab={activeTab}
@@ -337,6 +367,14 @@ export default function Home() {
           />
         </aside>
       </main>
+
+      {/* PDF Resume Upload & ATS Optimizer Modal */}
+      <PdfUploadModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        onApplyResume={handleApplyParsedResume}
+        hasTrackedJobs={jobs.length > 0}
+      />
     </div>
   );
 }

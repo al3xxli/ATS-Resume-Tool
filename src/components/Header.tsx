@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FileDown, Printer, Copy, Briefcase } from 'lucide-react';
+import { FileDown, Printer, Copy, Briefcase, FileUp } from 'lucide-react';
 import { ResumeData } from '@/types/resume';
 import { downloadAtsDocx, AllowedFont } from '@/utils/docxGenerator';
 
@@ -12,6 +12,7 @@ interface HeaderProps {
   jobsCount: number;
   showTracker: boolean;
   setShowTracker: React.Dispatch<React.SetStateAction<boolean>>;
+  onOpenPdfUpload: () => void;
   onCopyPlaintext: () => void;
   onPrint: () => void;
   activeTab: 'preview' | 'editor' | 'audit';
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   jobsCount,
   showTracker,
   setShowTracker,
+  onOpenPdfUpload,
   onCopyPlaintext,
   onPrint,
   activeTab,
@@ -106,6 +108,16 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={onOpenPdfUpload}
+              className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded border border-zinc-300 bg-white text-zinc-800 hover:text-black hover:border-black hover:bg-zinc-50 transition-colors shadow-2xs"
+              title="Upload any existing PDF resume to parse and ATS optimize"
+            >
+              <FileUp className="w-3.5 h-3.5 mr-1 text-black" />
+              <span>Upload PDF</span>
+            </button>
+
             <button
               onClick={() => setShowTracker((prev) => !prev)}
               className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
