@@ -279,16 +279,27 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
                     <span>{resume.contact.email}</span>
                   </>
                 )}
+                {resume.contact.portfolio && (
+                  <>
+                    <span>|</span>
+                    <a
+                      href={
+                        resume.contact.portfolio.startsWith('http')
+                          ? resume.contact.portfolio
+                          : `https://${resume.contact.portfolio}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#0055cc] hover:underline font-medium print:text-[#0055cc]"
+                    >
+                      {resume.contact.portfolio}
+                    </a>
+                  </>
+                )}
                 {resume.contact.linkedin && (
                   <>
                     <span>|</span>
                     <span>{resume.contact.linkedin}</span>
-                  </>
-                )}
-                {resume.contact.portfolio && (
-                  <>
-                    <span>|</span>
-                    <span>{resume.contact.portfolio}</span>
                   </>
                 )}
                 {resume.contact.location && (

@@ -198,26 +198,41 @@ export async function generateAtsDocx(
     );
   }
 
-  // 3. Contact Info (10pt, centered, pipe-separated)
-  const contactParts: string[] = [];
-  if (resume.contact.phone) contactParts.push(resume.contact.phone);
-  if (resume.contact.email) contactParts.push(resume.contact.email);
-  if (resume.contact.linkedin) contactParts.push(resume.contact.linkedin);
-  if (resume.contact.portfolio) contactParts.push(resume.contact.portfolio);
-  if (resume.contact.location) contactParts.push(resume.contact.location);
+  // 3. Contact Info (10pt, centered, pipe-separated, website link in blue)
+  const contactRuns: TextRun[] = [];
+  const contactItems: Array<{ text: string; isPortfolio?: boolean }> = [];
+  if (resume.contact.phone) contactItems.push({ text: resume.contact.phone });
+  if (resume.contact.email) contactItems.push({ text: resume.contact.email });
+  if (resume.contact.portfolio) contactItems.push({ text: resume.contact.portfolio, isPortfolio: true });
+  if (resume.contact.linkedin) contactItems.push({ text: resume.contact.linkedin });
+  if (resume.contact.location) contactItems.push({ text: resume.contact.location });
+
+  contactItems.forEach((item, index) => {
+    if (index > 0) {
+      contactRuns.push(
+        new TextRun({
+          text: '  |  ',
+          size: 20,
+          font: fontFamily,
+          color: '000000',
+        })
+      );
+    }
+    contactRuns.push(
+      new TextRun({
+        text: item.text,
+        size: 20, // 10pt
+        font: fontFamily,
+        color: item.isPortfolio ? '0055CC' : '000000',
+      })
+    );
+  });
 
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: spacing.contactAfter },
-      children: [
-        new TextRun({
-          text: contactParts.join('  |  '),
-          size: 20, // 10pt
-          font: fontFamily,
-          color: '000000',
-        }),
-      ],
+      children: contactRuns,
     })
   );
 

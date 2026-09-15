@@ -416,11 +416,11 @@ export const PdfUploadModal: React.FC<PdfUploadModalProps> = ({
                       {extractedData.resume.contact.location && (
                         <span>📍 {extractedData.resume.contact.location}</span>
                       )}
+                      {extractedData.resume.contact.portfolio && (
+                        <span className="text-[#0055cc] font-semibold">🌐 Portfolio</span>
+                      )}
                       {extractedData.resume.contact.linkedin && (
                         <span>🔗 LinkedIn</span>
-                      )}
-                      {extractedData.resume.contact.portfolio && (
-                        <span>🌐 Portfolio</span>
                       )}
                     </div>
                   </div>

@@ -637,6 +637,22 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
             />
           </div>
           <div>
+            <label className="font-medium text-black block mb-1">
+              Portfolio Website <span className="text-[#0055cc] text-[11px] font-semibold ml-1">(Featured Blue Link)</span>
+            </label>
+            <input
+              type="text"
+              value={resume.contact.portfolio}
+              onChange={(e) =>
+                setResume((prev) => ({
+                  ...prev,
+                  contact: { ...prev.contact, portfolio: e.target.value },
+                }))
+              }
+              className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded text-xs text-black"
+            />
+          </div>
+          <div>
             <label className="font-medium text-black block mb-1">LinkedIn Profile</label>
             <input
               type="text"
@@ -645,20 +661,6 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
                 setResume((prev) => ({
                   ...prev,
                   contact: { ...prev.contact, linkedin: e.target.value },
-                }))
-              }
-              className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded text-xs text-black"
-            />
-          </div>
-          <div>
-            <label className="font-medium text-black block mb-1">Portfolio Website</label>
-            <input
-              type="text"
-              value={resume.contact.portfolio}
-              onChange={(e) =>
-                setResume((prev) => ({
-                  ...prev,
-                  contact: { ...prev.contact, portfolio: e.target.value },
                 }))
               }
               className="w-full p-2 bg-zinc-50 border border-zinc-300 rounded text-xs text-black"

@@ -14,8 +14,8 @@ export function generateAtsPlainText(resume: ResumeData): string {
   const contactParts: string[] = [];
   if (resume.contact.phone) contactParts.push(resume.contact.phone);
   if (resume.contact.email) contactParts.push(resume.contact.email);
-  if (resume.contact.linkedin) contactParts.push(resume.contact.linkedin);
   if (resume.contact.portfolio) contactParts.push(resume.contact.portfolio);
+  if (resume.contact.linkedin) contactParts.push(resume.contact.linkedin);
   if (resume.contact.location) contactParts.push(resume.contact.location);
   lines.push(contactParts.join(' | '));
   lines.push('');
