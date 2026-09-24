@@ -110,7 +110,11 @@ export const JobTrackerPanel: React.FC<JobTrackerPanelProps> = ({
         `Load the saved resume and job description for ${job.company} (${job.jobTitle}) into your workspace?`
       )
     ) {
-      setResume(JSON.parse(JSON.stringify(job.savedResume)));
+      const loaded = JSON.parse(JSON.stringify(job.savedResume));
+      setResume({
+        ...loaded,
+        sectionOrder: loaded.sectionOrder || 'projects_first',
+      });
       if (job.jobDescription) {
         setJobDescription(job.jobDescription);
       }
@@ -153,7 +157,11 @@ export const JobTrackerPanel: React.FC<JobTrackerPanelProps> = ({
         /[^a-zA-Z0-9]/g,
         '_'
       )}_resume.docx`;
-      await downloadAtsDocx(job.savedResume, fontFamily, filename);
+      const resumeToDownload: ResumeData = {
+        ...job.savedResume,
+        sectionOrder: job.savedResume.sectionOrder || 'projects_first',
+      };
+      await downloadAtsDocx(resumeToDownload, fontFamily, filename);
       onShowToast(`Downloaded .docx for ${job.company}`);
     } catch (e) {
       console.error(e);

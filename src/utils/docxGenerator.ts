@@ -305,131 +305,143 @@ export async function generateAtsDocx(
     });
   }
 
-  // 6. Projects (Line-sensitive)
-  if (resume.projects && resume.projects.length > 0) {
-    children.push(createSectionHeader('Projects'));
+  // 6 & 7. Projects & Professional Experience helper generators
+  const addProjectsSection = () => {
+    if (resume.projects && resume.projects.length > 0) {
+      children.push(createSectionHeader('Projects'));
 
-    resume.projects.forEach((proj) => {
-      const projHeadingRuns: TextRun[] = [
-        new TextRun({
-          text: proj.name,
-          bold: true,
-          size: 21, // 10.5pt
-          font: fontFamily,
-          color: '000000',
-        }),
-        ...createLineSensitiveRuns(` — ${proj.subtitle}`, {
-          italics: true,
-          size: 20, // 10pt
-          font: fontFamily,
-        }),
-      ];
-
-      if (proj.dateRange) {
-        projHeadingRuns.push(
+      resume.projects.forEach((proj) => {
+        const projHeadingRuns: TextRun[] = [
           new TextRun({
-            text: `  (${proj.dateRange})`,
-            size: 20, // 10pt
+            text: proj.name,
+            bold: true,
+            size: 21, // 10.5pt
             font: fontFamily,
             color: '000000',
-          })
-        );
-      }
+          }),
+          ...createLineSensitiveRuns(` — ${proj.subtitle}`, {
+            italics: true,
+            size: 20, // 10pt
+            font: fontFamily,
+          }),
+        ];
 
-      children.push(
-        new Paragraph({
-          spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
-          children: projHeadingRuns,
-        })
-      );
+        if (proj.dateRange) {
+          projHeadingRuns.push(
+            new TextRun({
+              text: `  (${proj.dateRange})`,
+              size: 20, // 10pt
+              font: fontFamily,
+              color: '000000',
+            })
+          );
+        }
 
-      if (proj.awards) {
         children.push(
           new Paragraph({
-            spacing: { after: spacing.itemAfter },
-            children: [
-              new TextRun({
-                text: `Awards: ${proj.awards}`,
-                italics: true,
-                size: 19, // 9.5pt
-                font: fontFamily,
-                color: '000000',
-              }),
-            ],
+            spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
+            children: projHeadingRuns,
           })
         );
-      }
 
-      if (proj.highlights && proj.highlights.length > 0) {
-        proj.highlights.forEach((bullet) => {
+        if (proj.awards) {
           children.push(
             new Paragraph({
-              bullet: { level: 0 },
-              spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
-              children: createLineSensitiveRuns(bullet, {
-                size: 20, // 10pt
-                font: fontFamily,
-              }),
+              spacing: { after: spacing.itemAfter },
+              children: [
+                new TextRun({
+                  text: `Awards: ${proj.awards}`,
+                  italics: true,
+                  size: 19, // 9.5pt
+                  font: fontFamily,
+                  color: '000000',
+                }),
+              ],
             })
           );
-        });
-      }
-    });
-  }
+        }
 
-  // 7. Professional Experience (Line-sensitive)
-  if (resume.experience && resume.experience.length > 0) {
-    children.push(createSectionHeader('Professional Experience'));
+        if (proj.highlights && proj.highlights.length > 0) {
+          proj.highlights.forEach((bullet) => {
+            children.push(
+              new Paragraph({
+                bullet: { level: 0 },
+                spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
+                children: createLineSensitiveRuns(bullet, {
+                  size: 20, // 10pt
+                  font: fontFamily,
+                }),
+              })
+            );
+          });
+        }
+      });
+    }
+  };
 
-    resume.experience.forEach((exp) => {
-      const expHeadingRuns: TextRun[] = [
-        new TextRun({
-          text: exp.company,
-          bold: true,
-          size: 21, // 10.5pt
-          font: fontFamily,
-          color: '000000',
-        }),
-        ...createLineSensitiveRuns(` — ${exp.role}, ${exp.location}`, {
-          italics: true,
-          size: 20, // 10pt
-          font: fontFamily,
-        }),
-      ];
+  const addExperienceSection = () => {
+    if (resume.experience && resume.experience.length > 0) {
+      children.push(createSectionHeader('Professional Experience'));
 
-      if (exp.dateRange) {
-        expHeadingRuns.push(
+      resume.experience.forEach((exp) => {
+        const expHeadingRuns: TextRun[] = [
           new TextRun({
-            text: `  (${exp.dateRange})`,
-            size: 20, // 10pt
+            text: exp.company,
+            bold: true,
+            size: 21, // 10.5pt
             font: fontFamily,
             color: '000000',
-          })
-        );
-      }
+          }),
+          ...createLineSensitiveRuns(` — ${exp.role}, ${exp.location}`, {
+            italics: true,
+            size: 20, // 10pt
+            font: fontFamily,
+          }),
+        ];
 
-      children.push(
-        new Paragraph({
-          spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
-          children: expHeadingRuns,
-        })
-      );
-
-      if (exp.highlights && exp.highlights.length > 0) {
-        exp.highlights.forEach((bullet) => {
-          children.push(
-            new Paragraph({
-              bullet: { level: 0 },
-              spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
-              children: createLineSensitiveRuns(bullet, {
-                size: 20, // 10pt
-                font: fontFamily,
-              }),
+        if (exp.dateRange) {
+          expHeadingRuns.push(
+            new TextRun({
+              text: `  (${exp.dateRange})`,
+              size: 20, // 10pt
+              font: fontFamily,
+              color: '000000',
             })
           );
-        });
-      }
-    });
+        }
+
+        children.push(
+          new Paragraph({
+            spacing: { before: spacing.itemBefore, after: spacing.itemAfter },
+            children: expHeadingRuns,
+          })
+        );
+
+        if (exp.highlights && exp.highlights.length > 0) {
+          exp.highlights.forEach((bullet) => {
+            children.push(
+              new Paragraph({
+                bullet: { level: 0 },
+                spacing: { after: spacing.bulletAfter, line: spacing.lineSpacing },
+                children: createLineSensitiveRuns(bullet, {
+                  size: 20, // 10pt
+                  font: fontFamily,
+                }),
+              })
+            );
+          });
+        }
+      });
+    }
+  };
+
+  // Emit Projects and Professional Experience in specified sectionOrder
+  if (resume.sectionOrder === 'experience_first') {
+    addExperienceSection();
+    addProjectsSection();
+  } else {
+    addProjectsSection();
+    addExperienceSection();
   }
 
   // 8. Technical Skills

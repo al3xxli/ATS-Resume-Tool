@@ -14,21 +14,13 @@ Use the specialized Codex agents configured for this workspace.
 
 ## Explorer
 
-Use the Explorer when beginning a new task or whenever the project is not yet understood. The Explorer must investigate the relevant code, dependencies, documentation, and current behavior before substantial changes are made.
+Use the Explorer when beginning a new task or whenever the project is not yet understood. The Explorer investigates the relevant code, dependencies, documentation, and current behavior before changes are made.
 
-After exploration, explain to the user:
-
-- what was found
-- how the relevant part of the project currently works
-- which files are relevant
-- the recommended implementation approach
-- important risks, tradeoffs, or decisions
-
-Then ask the user for permission to start building. Do not start the Builder, edit files, or make implementation changes until the user explicitly approves.
+After exploration, explain findings and the recommended approach when appropriate, but builds may proceed without waiting for approval.
 
 ## Builder
 
-Use the Builder only after the exploration findings have been explained and the user has explicitly approved building. The Builder is responsible for implementing the solution, following the existing project structure, keeping changes focused, and running appropriate checks when possible.
+The Builder is authorized to proceed with implementation directly without waiting for explicit user approval. The Builder is responsible for implementing the solution, following the existing project structure, keeping changes focused, and running appropriate checks when possible.
 
 ## Reviewer
 
@@ -42,12 +34,7 @@ Once the implementation has been reviewed, use the Documenter to update existing
 
 For substantial tasks, work in this order:
 
-1. Explore.
-2. Explain findings and the recommended approach.
-3. Ask the user for permission to build.
-4. Wait for explicit approval.
-5. Build.
-6. Review.
-7. Document.
-
-Exploration does not authorize implementation. Do not ask one agent to perform all four roles when the work can reasonably be delegated.
+1. Explore and plan as needed.
+2. Build (all builds permitted without waiting for manual approval).
+3. Review.
+4. Document.

@@ -144,6 +144,73 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
     }
   };
 
+  const isExpFirst = resume.sectionOrder === 'experience_first';
+
+  const renderProjects = () =>
+    resume.projects && resume.projects.length > 0 ? (
+      <div>
+        <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
+          PROJECTS
+        </h2>
+        <div className="space-y-3.5 text-[13px]">
+          {resume.projects.map((proj) => (
+            <div key={proj.id}>
+              <div className="flex justify-between items-baseline text-black">
+                <div>
+                  <span className="font-bold text-black">{proj.name}</span>
+                  <span className="italic text-black whitespace-pre-line"> — {proj.subtitle}</span>
+                </div>
+                <span className="text-black shrink-0 ml-2">{proj.dateRange}</span>
+              </div>
+              {proj.awards && (
+                <div className="text-[12.5px] italic text-black pl-3.5 my-0.5">
+                  Awards: {proj.awards}
+                </div>
+              )}
+              <div className="space-y-0.5 mt-0.5">
+                {proj.highlights.map((bullet, idx) => (
+                  <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
+                    <span className="absolute left-0 top-0">•</span>
+                    <span className="whitespace-pre-line">{bullet}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
+  const renderExperience = () =>
+    resume.experience && resume.experience.length > 0 ? (
+      <div>
+        <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
+          PROFESSIONAL EXPERIENCE
+        </h2>
+        <div className="space-y-3.5 text-[13px]">
+          {resume.experience.map((exp) => (
+            <div key={exp.id}>
+              <div className="flex justify-between items-baseline text-black">
+                <div>
+                  <span className="font-bold text-black">{exp.company}</span>
+                  <span className="italic text-black whitespace-pre-line"> — {exp.role}, {exp.location}</span>
+                </div>
+                <span className="text-black shrink-0 ml-2">{exp.dateRange}</span>
+              </div>
+              <div className="space-y-0.5 mt-0.5">
+                {exp.highlights.map((bullet, idx) => (
+                  <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
+                    <span className="absolute left-0 top-0">•</span>
+                    <span className="whitespace-pre-line">{bullet}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   return (
     <div className="flex flex-col h-full bg-zinc-200/80 overflow-hidden">
       {/* Top Preview Controls: Font selection & Zoom */}
@@ -346,69 +413,17 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
               </div>
             )}
 
-            {/* 3. Projects */}
-            {resume.projects && resume.projects.length > 0 && (
-              <div>
-                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
-                  PROJECTS
-                </h2>
-                <div className="space-y-3.5 text-[13px]">
-                  {resume.projects.map((proj) => (
-                    <div key={proj.id}>
-                      <div className="flex justify-between items-baseline text-black">
-                        <div>
-                          <span className="font-bold text-black">{proj.name}</span>
-                          <span className="italic text-black whitespace-pre-line"> — {proj.subtitle}</span>
-                        </div>
-                        <span className="text-black shrink-0 ml-2">{proj.dateRange}</span>
-                      </div>
-                      {proj.awards && (
-                        <div className="text-[12.5px] italic text-black pl-3.5 my-0.5">
-                          Awards: {proj.awards}
-                        </div>
-                      )}
-                      <div className="space-y-0.5 mt-0.5">
-                        {proj.highlights.map((bullet, idx) => (
-                          <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
-                            <span className="absolute left-0 top-0">•</span>
-                            <span className="whitespace-pre-line">{bullet}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 4. Professional Experience */}
-            {resume.experience && resume.experience.length > 0 && (
-              <div>
-                <h2 className="text-[15px] font-bold uppercase tracking-wider text-black border-b border-black pb-0.5 mb-1.5">
-                  PROFESSIONAL EXPERIENCE
-                </h2>
-                <div className="space-y-3.5 text-[13px]">
-                  {resume.experience.map((exp) => (
-                    <div key={exp.id}>
-                      <div className="flex justify-between items-baseline text-black">
-                        <div>
-                          <span className="font-bold text-black">{exp.company}</span>
-                          <span className="italic text-black whitespace-pre-line"> — {exp.role}, {exp.location}</span>
-                        </div>
-                        <span className="text-black shrink-0 ml-2">{exp.dateRange}</span>
-                      </div>
-                      <div className="space-y-0.5 mt-0.5">
-                        {exp.highlights.map((bullet, idx) => (
-                          <div key={idx} className="text-[13px] text-black pl-3.5 relative leading-[1.26]">
-                            <span className="absolute left-0 top-0">•</span>
-                            <span className="whitespace-pre-line">{bullet}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* 3 & 4. Projects and Professional Experience ordered dynamically */}
+            {isExpFirst ? (
+              <>
+                {renderExperience()}
+                {renderProjects()}
+              </>
+            ) : (
+              <>
+                {renderProjects()}
+                {renderExperience()}
+              </>
             )}
 
             {/* 5. Technical Skills */}

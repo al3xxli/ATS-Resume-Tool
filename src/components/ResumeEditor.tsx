@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ResumeData, ExperienceItem, ProjectItem, EducationItem, SkillCategory } from '@/types/resume';
-import { Plus, Trash2, RotateCcw, X, ArrowLeftRight, BookmarkPlus, Layers } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, X, ArrowLeftRight, BookmarkPlus, Layers, ArrowUpDown, Briefcase } from 'lucide-react';
 import { alexLiOriginalResume } from '@/data/defaultResume';
 import { ProjectPacket } from '@/types/packets';
 import { defaultProjectPackets } from '@/data/defaultPackets';
@@ -246,6 +246,23 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
   const [targetSwapName, setTargetSwapName] = useState<string>('');
 
   const activePackets = projectPackets && projectPackets.length > 0 ? projectPackets : defaultProjectPackets;
+
+  const currentOrder: 'projects_first' | 'experience_first' = resume.sectionOrder || 'projects_first';
+
+  const handleSetSectionOrder = (newOrder: 'projects_first' | 'experience_first') => {
+    if (currentOrder === newOrder) return;
+    setResume((prev) => ({
+      ...prev,
+      sectionOrder: newOrder,
+    }));
+    if (onShowToast) {
+      onShowToast(
+        newOrder === 'projects_first'
+          ? 'Layout updated: Projects placed before Experience'
+          : 'Layout updated: Professional Experience placed before Projects'
+      );
+    }
+  };
 
   const handleOpenSwapModal = (slotIndex: number | null, slotName?: string) => {
     setTargetSwapSlot(slotIndex);
@@ -564,6 +581,255 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
     });
   };
 
+  const renderExperienceCard = () => (
+    <div key="experience-section" className="bg-white p-4 rounded border border-zinc-200 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+            Professional Experience
+          </h3>
+          <p className="text-[11px] text-zinc-500">
+            Line breaks (Shift+Enter or Enter) in bullets are preserved.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => handleSetSectionOrder(currentOrder === 'projects_first' ? 'experience_first' : 'projects_first')}
+            className="text-[11px] px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-black rounded font-medium transition-colors flex items-center"
+            title="Switch order between Projects First and Experience First"
+          >
+            <ArrowUpDown className="w-3 h-3 mr-1" />
+            {currentOrder === 'experience_first' ? 'Move Below Projects' : 'Move Above Projects'}
+          </button>
+          <button
+            type="button"
+            onClick={addExpItem}
+            className="text-xs text-black hover:underline font-medium inline-flex items-center"
+          >
+            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Position
+          </button>
+        </div>
+      </div>
+      <div className="space-y-4">
+        {resume.experience.map((exp, idx) => (
+          <div key={exp.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
+            <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
+              <span className="text-[11px] font-bold text-zinc-700">
+                Role #{idx + 1}
+              </span>
+              <button
+                onClick={() => removeExpItem(idx)}
+                className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
+                title="Remove this position"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Company</label>
+                <input
+                  type="text"
+                  value={exp.company}
+                  onChange={(e) => updateExp(idx, 'company', e.target.value)}
+                  className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs font-bold text-black"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Role Title</label>
+                <input
+                  type="text"
+                  value={exp.role}
+                  onChange={(e) => updateExp(idx, 'role', e.target.value)}
+                  className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Date Range</label>
+                <input
+                  type="text"
+                  value={exp.dateRange}
+                  onChange={(e) => updateExp(idx, 'dateRange', e.target.value)}
+                  className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
+                />
+              </div>
+            </div>
+
+            {/* Bullets */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-zinc-600 block">Bullets</label>
+              {exp.highlights.map((bullet, bIdx) => (
+                <div key={bIdx} className="flex items-start space-x-1.5">
+                  <span className="text-zinc-400 mt-1.5 text-xs">•</span>
+                  <textarea
+                    rows={2}
+                    value={bullet}
+                    onChange={(e) => updateExpBullet(idx, bIdx, e.target.value)}
+                    placeholder="Bullet achievement (Shift+Enter for line breaks)..."
+                    className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
+                  />
+                  <button
+                    onClick={() => removeExpBullet(idx, bIdx)}
+                    className="text-zinc-400 hover:text-black p-1 transition-colors"
+                    title="Remove"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => addExpBullet(idx)}
+                className="text-xs text-black hover:underline font-medium inline-flex items-center mt-0.5"
+              >
+                <Plus className="w-3.5 h-3.5 mr-0.5" /> Add bullet
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderProjectsCard = () => (
+    <div key="projects-section" className="bg-white p-4 rounded border border-zinc-200 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+            Projects
+          </h3>
+          <p className="text-[11px] text-zinc-500">
+            Line breaks (Shift+Enter or Enter) in bullets are preserved.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => handleSetSectionOrder(currentOrder === 'projects_first' ? 'experience_first' : 'projects_first')}
+            className="text-[11px] px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-black rounded font-medium transition-colors flex items-center"
+            title="Switch order between Projects First and Experience First"
+          >
+            <ArrowUpDown className="w-3 h-3 mr-1" />
+            {currentOrder === 'projects_first' ? 'Move Below Experience' : 'Move Above Experience'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenSwapModal(null)}
+            className="text-xs px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-black rounded font-medium transition-colors flex items-center"
+            title="Open your library of saved project packets"
+          >
+            <Layers className="w-3.5 h-3.5 mr-1" /> Packet Library ({activePackets.length})
+          </button>
+          <button
+            type="button"
+            onClick={addProjItem}
+            className="text-xs text-black hover:underline font-medium inline-flex items-center"
+          >
+            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Project
+          </button>
+        </div>
+      </div>
+      <div className="space-y-4">
+        {resume.projects.map((proj, idx) => (
+          <div key={proj.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
+            <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
+              <span className="text-[11px] font-bold text-zinc-700">
+                Project #{idx + 1}
+              </span>
+              <div className="flex items-center space-x-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleOpenSwapModal(idx, proj.name)}
+                  className="text-[11px] px-2 py-0.5 bg-black hover:bg-zinc-800 text-white rounded font-medium flex items-center transition-colors shadow-2xs"
+                  title="Swap this project with a saved packet from your library"
+                >
+                  <ArrowLeftRight className="w-3 h-3 mr-1" /> Swap Project
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveProjectToLibrary(proj)}
+                  className="text-[11px] px-2 py-0.5 border border-zinc-300 hover:border-black bg-white hover:bg-zinc-100 text-zinc-700 hover:text-black rounded font-medium flex items-center transition-colors"
+                  title="Save this project as a packet in your library"
+                >
+                  <BookmarkPlus className="w-3 h-3 mr-1" /> Save to Library
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeProjItem(idx)}
+                  className="text-zinc-400 hover:text-red-600 p-1 transition-colors ml-1"
+                  title="Remove this project"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Project Name</label>
+                <input
+                  type="text"
+                  value={proj.name}
+                  onChange={(e) => updateProj(idx, 'name', e.target.value)}
+                  className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs font-bold text-black"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Date Range</label>
+                <input
+                  type="text"
+                  value={proj.dateRange}
+                  onChange={(e) => updateProj(idx, 'dateRange', e.target.value)}
+                  className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Subtitle</label>
+              <input
+                type="text"
+                value={proj.subtitle}
+                onChange={(e) => updateProj(idx, 'subtitle', e.target.value)}
+                className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-zinc-600 block">Bullets</label>
+              {proj.highlights.map((bullet, bIdx) => (
+                <div key={bIdx} className="flex items-start space-x-1.5">
+                  <span className="text-zinc-400 mt-1.5 text-xs">•</span>
+                  <textarea
+                    rows={2}
+                    value={bullet}
+                    onChange={(e) => updateProjBullet(idx, bIdx, e.target.value)}
+                    placeholder="Project metric or result (Shift+Enter for line breaks)..."
+                    className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
+                  />
+                  <button
+                    onClick={() => removeProjBullet(idx, bIdx)}
+                    className="text-zinc-400 hover:text-black p-1 transition-colors"
+                    title="Remove"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => addProjBullet(idx)}
+                className="text-xs text-black hover:underline font-medium inline-flex items-center mt-0.5"
+              >
+                <Plus className="w-3.5 h-3.5 mr-0.5" /> Add bullet
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full bg-zinc-50 overflow-y-auto p-6 space-y-6">
       <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
@@ -688,6 +954,75 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         />
       </div>
 
+      {/* Section Layout Priority Switcher */}
+      <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <ArrowUpDown className="w-4 h-4 text-black" />
+            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
+              Section Layout Priority
+            </h3>
+          </div>
+          <span className="text-[11px] text-zinc-500 font-medium">
+            Controls order in Editor, 1-Page Preview & .docx export
+          </span>
+        </div>
+        <p className="text-xs text-zinc-600">
+          Choose whether to prioritize portfolio projects or professional work experience first:
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+          <button
+            type="button"
+            onClick={() => handleSetSectionOrder('projects_first')}
+            className={`p-3 rounded border text-left flex items-start space-x-3 transition-all cursor-pointer ${
+              currentOrder === 'projects_first'
+                ? 'border-black bg-zinc-900 text-white shadow-xs'
+                : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800'
+            }`}
+          >
+            <div className={`mt-0.5 p-1.5 rounded ${currentOrder === 'projects_first' ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-700'}`}>
+              <Layers className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold">Projects First</span>
+                {currentOrder === 'projects_first' && (
+                  <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-medium">Active</span>
+                )}
+              </div>
+              <p className={`text-[11px] mt-0.5 leading-tight ${currentOrder === 'projects_first' ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                Education &rarr; <span className={currentOrder === 'projects_first' ? 'font-semibold text-white underline' : 'font-semibold text-zinc-700'}>Projects</span> &rarr; Experience &rarr; Skills
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSetSectionOrder('experience_first')}
+            className={`p-3 rounded border text-left flex items-start space-x-3 transition-all cursor-pointer ${
+              currentOrder === 'experience_first'
+                ? 'border-black bg-zinc-900 text-white shadow-xs'
+                : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800'
+            }`}
+          >
+            <div className={`mt-0.5 p-1.5 rounded ${currentOrder === 'experience_first' ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-700'}`}>
+              <Briefcase className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold">Experience First</span>
+                {currentOrder === 'experience_first' && (
+                  <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-medium">Active</span>
+                )}
+              </div>
+              <p className={`text-[11px] mt-0.5 leading-tight ${currentOrder === 'experience_first' ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                Education &rarr; <span className={currentOrder === 'experience_first' ? 'font-semibold text-white underline' : 'font-semibold text-zinc-700'}>Experience</span> &rarr; Projects &rarr; Skills
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Education */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
         <div className="flex items-center justify-between">
@@ -796,231 +1131,18 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         </div>
       </div>
 
-      {/* Experience */}
-      <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-              Professional Experience
-            </h3>
-            <p className="text-[11px] text-zinc-500">
-              Line breaks (Shift+Enter or Enter) in bullets are preserved.
-            </p>
-          </div>
-          <button
-            onClick={addExpItem}
-            className="text-xs text-black hover:underline font-medium inline-flex items-center"
-          >
-            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Position
-          </button>
-        </div>
-        <div className="space-y-4">
-          {resume.experience.map((exp, idx) => (
-            <div key={exp.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
-              <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
-                <span className="text-[11px] font-bold text-zinc-700">
-                  Role #{idx + 1}
-                </span>
-                <button
-                  onClick={() => removeExpItem(idx)}
-                  className="text-zinc-400 hover:text-red-600 p-1 transition-colors"
-                  title="Remove this position"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Company</label>
-                  <input
-                    type="text"
-                    value={exp.company}
-                    onChange={(e) => updateExp(idx, 'company', e.target.value)}
-                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs font-bold text-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Role Title</label>
-                  <input
-                    type="text"
-                    value={exp.role}
-                    onChange={(e) => updateExp(idx, 'role', e.target.value)}
-                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Date Range</label>
-                  <input
-                    type="text"
-                    value={exp.dateRange}
-                    onChange={(e) => updateExp(idx, 'dateRange', e.target.value)}
-                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
-                  />
-                </div>
-              </div>
-
-              {/* Bullets */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-zinc-600 block">Bullets</label>
-                {exp.highlights.map((bullet, bIdx) => (
-                  <div key={bIdx} className="flex items-start space-x-1.5">
-                    <span className="text-zinc-400 mt-1.5 text-xs">•</span>
-                    <textarea
-                      rows={2}
-                      value={bullet}
-                      onChange={(e) => updateExpBullet(idx, bIdx, e.target.value)}
-                      placeholder="Bullet achievement (Shift+Enter for line breaks)..."
-                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
-                    />
-                    <button
-                      onClick={() => removeExpBullet(idx, bIdx)}
-                      className="text-zinc-400 hover:text-black p-1 transition-colors"
-                      title="Remove"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => addExpBullet(idx)}
-                  className="text-xs text-black hover:underline font-medium inline-flex items-center mt-0.5"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-0.5" /> Add bullet
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Projects */}
-      <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-              Projects
-            </h3>
-            <p className="text-[11px] text-zinc-500">
-              Line breaks (Shift+Enter or Enter) in bullets are preserved.
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => handleOpenSwapModal(null)}
-              className="text-xs px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 text-black rounded font-medium transition-colors flex items-center"
-              title="Open your library of saved project packets"
-            >
-              <Layers className="w-3.5 h-3.5 mr-1" /> Packet Library ({activePackets.length})
-            </button>
-            <button
-              type="button"
-              onClick={addProjItem}
-              className="text-xs text-black hover:underline font-medium inline-flex items-center"
-            >
-              <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Project
-            </button>
-          </div>
-        </div>
-        <div className="space-y-4">
-          {resume.projects.map((proj, idx) => (
-            <div key={proj.id} className="p-3 bg-zinc-50 rounded border border-zinc-200 space-y-2.5">
-              <div className="flex items-center justify-between pb-1 border-b border-zinc-200">
-                <span className="text-[11px] font-bold text-zinc-700">
-                  Project #{idx + 1}
-                </span>
-                <div className="flex items-center space-x-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenSwapModal(idx, proj.name)}
-                    className="text-[11px] px-2 py-0.5 bg-black hover:bg-zinc-800 text-white rounded font-medium flex items-center transition-colors shadow-2xs"
-                    title="Swap this project with a saved packet from your library"
-                  >
-                    <ArrowLeftRight className="w-3 h-3 mr-1" /> Swap Project
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveProjectToLibrary(proj)}
-                    className="text-[11px] px-2 py-0.5 border border-zinc-300 hover:border-black bg-white hover:bg-zinc-100 text-zinc-700 hover:text-black rounded font-medium flex items-center transition-colors"
-                    title="Save this project as a packet in your library"
-                  >
-                    <BookmarkPlus className="w-3 h-3 mr-1" /> Save to Library
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeProjItem(idx)}
-                    className="text-zinc-400 hover:text-red-600 p-1 transition-colors ml-1"
-                    title="Remove this project"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Project Name</label>
-                  <input
-                    type="text"
-                    value={proj.name}
-                    onChange={(e) => updateProj(idx, 'name', e.target.value)}
-                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs font-bold text-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Date Range</label>
-                  <input
-                    type="text"
-                    value={proj.dateRange}
-                    onChange={(e) => updateProj(idx, 'dateRange', e.target.value)}
-                    className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold text-zinc-600 block mb-0.5">Subtitle</label>
-                <input
-                  type="text"
-                  value={proj.subtitle}
-                  onChange={(e) => updateProj(idx, 'subtitle', e.target.value)}
-                  className="w-full p-1.5 bg-white border border-zinc-300 rounded text-xs text-black"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-zinc-600 block">Bullets</label>
-                {proj.highlights.map((bullet, bIdx) => (
-                  <div key={bIdx} className="flex items-start space-x-1.5">
-                    <span className="text-zinc-400 mt-1.5 text-xs">•</span>
-                    <textarea
-                      rows={2}
-                      value={bullet}
-                      onChange={(e) => updateProjBullet(idx, bIdx, e.target.value)}
-                      placeholder="Project metric or result (Shift+Enter for line breaks)..."
-                      className="flex-1 p-1.5 bg-white border border-zinc-300 rounded text-xs text-black leading-relaxed font-sans"
-                    />
-                    <button
-                      onClick={() => removeProjBullet(idx, bIdx)}
-                      className="text-zinc-400 hover:text-black p-1 transition-colors"
-                      title="Remove"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => addProjBullet(idx)}
-                  className="text-xs text-black hover:underline font-medium inline-flex items-center mt-0.5"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-0.5" /> Add bullet
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Conditionally order Projects and Experience cards based on layout priority */}
+      {currentOrder === 'experience_first' ? (
+        <>
+          {renderExperienceCard()}
+          {renderProjectsCard()}
+        </>
+      ) : (
+        <>
+          {renderProjectsCard()}
+          {renderExperienceCard()}
+        </>
+      )}
 
       {/* Skills Matrix & Languages */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">

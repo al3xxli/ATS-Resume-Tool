@@ -39,6 +39,14 @@ Built with **Next.js 16**, **TypeScript**, **Tailwind CSS**, and native **`.docx
      - *Senior Computational Design Specialist*
      - *AI Design Technologist*
 
+8. **Section Layout Priority Switcher (Projects First vs. Experience First)**
+   - Toggle between **Projects First** (`Education → Projects → Experience → Skills`) and **Experience First** (`Education → Experience → Projects → Skills`) directly in the Edit tab or via section header buttons.
+   - Synchronized across the live on-screen Letter sheet preview, native `.docx` export, and plaintext output.
+   - Retains localized data without wiping or reset.
+
+9. **Project Information Packet Library & 1-Click Slot Swaps**
+   - Save and swap project packets instantly to customize resumes for different domains without tedious re-typing.
+
 ---
 
 ## 💻 Local Development

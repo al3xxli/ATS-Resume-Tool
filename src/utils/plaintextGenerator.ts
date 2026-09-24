@@ -27,27 +27,37 @@ export function generateAtsPlainText(resume: ResumeData): string {
     lines.push('');
   }
 
-  // Experience
-  if (resume.experience.length > 0) {
-    lines.push('PROFESSIONAL EXPERIENCE');
-    resume.experience.forEach((exp) => {
-      lines.push(`${exp.company} - ${exp.location}`);
-      lines.push(`${exp.role} (${exp.dateRange})`);
-      exp.highlights.forEach((h) => lines.push(`- ${h}`));
-      lines.push('');
-    });
-  }
+  const appendExperience = () => {
+    if (resume.experience.length > 0) {
+      lines.push('PROFESSIONAL EXPERIENCE');
+      resume.experience.forEach((exp) => {
+        lines.push(`${exp.company} - ${exp.location}`);
+        lines.push(`${exp.role} (${exp.dateRange})`);
+        exp.highlights.forEach((h) => lines.push(`- ${h}`));
+        lines.push('');
+      });
+    }
+  };
 
-  // Projects
-  if (resume.projects.length > 0) {
-    lines.push('TECHNICAL & DESIGN PROJECTS');
-    resume.projects.forEach((proj) => {
-      lines.push(`${proj.name} (${proj.dateRange})`);
-      if (proj.subtitle) lines.push(proj.subtitle);
-      if (proj.awards) lines.push(`Awards: ${proj.awards}`);
-      proj.highlights.forEach((h) => lines.push(`- ${h}`));
-      lines.push('');
-    });
+  const appendProjects = () => {
+    if (resume.projects.length > 0) {
+      lines.push('TECHNICAL & DESIGN PROJECTS');
+      resume.projects.forEach((proj) => {
+        lines.push(`${proj.name} (${proj.dateRange})`);
+        if (proj.subtitle) lines.push(proj.subtitle);
+        if (proj.awards) lines.push(`Awards: ${proj.awards}`);
+        proj.highlights.forEach((h) => lines.push(`- ${h}`));
+        lines.push('');
+      });
+    }
+  };
+
+  if (resume.sectionOrder === 'experience_first') {
+    appendExperience();
+    appendProjects();
+  } else {
+    appendProjects();
+    appendExperience();
   }
 
   // Education
