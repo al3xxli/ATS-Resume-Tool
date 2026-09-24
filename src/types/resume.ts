@@ -48,6 +48,7 @@ export interface ResumeData {
   projects: ProjectItem[];
   skills: SkillCategory[];
   languages: string[];
+  sectionOrder?: 'projects_first' | 'experience_first';
 }
 
 export interface KeywordMatch {

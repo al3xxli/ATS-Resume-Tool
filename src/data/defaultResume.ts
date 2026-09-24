@@ -124,4 +124,5 @@ export const alexLiOriginalResume: ResumeData = {
     },
   ],
   languages: ['English', 'Mandarin Chinese'],
+  sectionOrder: 'projects_first',
 };

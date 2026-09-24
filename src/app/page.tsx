@@ -52,7 +52,10 @@ export default function Home() {
       if (savedResume) {
         const parsed = JSON.parse(savedResume);
         if (parsed && parsed.name) {
-          setResume(parsed);
+          setResume({
+            ...parsed,
+            sectionOrder: parsed.sectionOrder || 'projects_first',
+          });
         }
       }
 
