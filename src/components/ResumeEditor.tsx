@@ -258,8 +258,8 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
     if (onShowToast) {
       onShowToast(
         newOrder === 'projects_first'
-          ? 'Layout updated: Projects placed before Experience'
-          : 'Layout updated: Professional Experience placed before Projects'
+          ? 'Resume order: Projects is #1, Experience is #2'
+          : 'Resume order: Professional Experience is #1, Projects is #2'
       );
     }
   };
@@ -583,33 +583,52 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
 
   const renderExperienceCard = () => (
     <div key="experience-section" className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-200">
+        <div className="flex items-center flex-wrap gap-2.5">
           <h3 className="text-xs font-bold text-black uppercase tracking-wider">
             Professional Experience
           </h3>
-          <p className="text-[11px] text-zinc-500">
-            Line breaks (Shift+Enter or Enter) in bullets are preserved.
-          </p>
+          {/* Order 1 / 2 toggle */}
+          <div className="inline-flex items-center bg-zinc-100 p-0.5 rounded border border-zinc-300 text-[11px] shadow-2xs">
+            <span className="text-[10px] font-bold text-zinc-500 px-1.5 uppercase tracking-wider">
+              Resume Order:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSetSectionOrder('experience_first')}
+              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                currentOrder === 'experience_first'
+                  ? 'bg-black text-white shadow-2xs'
+                  : 'text-zinc-600 hover:text-black hover:bg-zinc-200'
+              }`}
+              title="Set Professional Experience to appear 1st on the resume"
+            >
+              1
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetSectionOrder('projects_first')}
+              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                currentOrder === 'projects_first'
+                  ? 'bg-black text-white shadow-2xs'
+                  : 'text-zinc-600 hover:text-black hover:bg-zinc-200'
+              }`}
+              title="Set Professional Experience to appear 2nd on the resume"
+            >
+              2
+            </button>
+          </div>
+          <span className="text-[11px] text-zinc-500 font-medium">
+            {currentOrder === 'experience_first' ? '• 1st on resume' : '• 2nd on resume'}
+          </span>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => handleSetSectionOrder(currentOrder === 'projects_first' ? 'experience_first' : 'projects_first')}
-            className="text-[11px] px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-black rounded font-medium transition-colors flex items-center"
-            title="Switch order between Projects First and Experience First"
-          >
-            <ArrowUpDown className="w-3 h-3 mr-1" />
-            {currentOrder === 'experience_first' ? 'Move Below Projects' : 'Move Above Projects'}
-          </button>
-          <button
-            type="button"
-            onClick={addExpItem}
-            className="text-xs text-black hover:underline font-medium inline-flex items-center"
-          >
-            <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Position
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={addExpItem}
+          className="text-xs text-black hover:underline font-medium inline-flex items-center"
+        >
+          <Plus className="w-3.5 h-3.5 mr-0.5" /> Add Position
+        </button>
       </div>
       <div className="space-y-4">
         {resume.experience.map((exp, idx) => (
@@ -694,25 +713,46 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
 
   const renderProjectsCard = () => (
     <div key="projects-section" className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-200">
+        <div className="flex items-center flex-wrap gap-2.5">
           <h3 className="text-xs font-bold text-black uppercase tracking-wider">
             Projects
           </h3>
-          <p className="text-[11px] text-zinc-500">
-            Line breaks (Shift+Enter or Enter) in bullets are preserved.
-          </p>
+          {/* Order 1 / 2 toggle */}
+          <div className="inline-flex items-center bg-zinc-100 p-0.5 rounded border border-zinc-300 text-[11px] shadow-2xs">
+            <span className="text-[10px] font-bold text-zinc-500 px-1.5 uppercase tracking-wider">
+              Resume Order:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSetSectionOrder('projects_first')}
+              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                currentOrder === 'projects_first'
+                  ? 'bg-black text-white shadow-2xs'
+                  : 'text-zinc-600 hover:text-black hover:bg-zinc-200'
+              }`}
+              title="Set Projects to appear 1st on the resume (before Experience)"
+            >
+              1
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetSectionOrder('experience_first')}
+              className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                currentOrder === 'experience_first'
+                  ? 'bg-black text-white shadow-2xs'
+                  : 'text-zinc-600 hover:text-black hover:bg-zinc-200'
+              }`}
+              title="Set Projects to appear 2nd on the resume (after Experience)"
+            >
+              2
+            </button>
+          </div>
+          <span className="text-[11px] text-zinc-500 font-medium">
+            {currentOrder === 'projects_first' ? '• 1st on resume' : '• 2nd on resume'}
+          </span>
         </div>
         <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => handleSetSectionOrder(currentOrder === 'projects_first' ? 'experience_first' : 'projects_first')}
-            className="text-[11px] px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-black rounded font-medium transition-colors flex items-center"
-            title="Switch order between Projects First and Experience First"
-          >
-            <ArrowUpDown className="w-3 h-3 mr-1" />
-            {currentOrder === 'projects_first' ? 'Move Below Experience' : 'Move Above Experience'}
-          </button>
           <button
             type="button"
             onClick={() => handleOpenSwapModal(null)}
@@ -954,75 +994,6 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         />
       </div>
 
-      {/* Section Layout Priority Switcher */}
-      <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <ArrowUpDown className="w-4 h-4 text-black" />
-            <h3 className="text-xs font-bold text-black uppercase tracking-wider">
-              Section Layout Priority
-            </h3>
-          </div>
-          <span className="text-[11px] text-zinc-500 font-medium">
-            Controls order in Editor, 1-Page Preview & .docx export
-          </span>
-        </div>
-        <p className="text-xs text-zinc-600">
-          Choose whether to prioritize portfolio projects or professional work experience first:
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
-          <button
-            type="button"
-            onClick={() => handleSetSectionOrder('projects_first')}
-            className={`p-3 rounded border text-left flex items-start space-x-3 transition-all cursor-pointer ${
-              currentOrder === 'projects_first'
-                ? 'border-black bg-zinc-900 text-white shadow-xs'
-                : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800'
-            }`}
-          >
-            <div className={`mt-0.5 p-1.5 rounded ${currentOrder === 'projects_first' ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-700'}`}>
-              <Layers className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">Projects First</span>
-                {currentOrder === 'projects_first' && (
-                  <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-medium">Active</span>
-                )}
-              </div>
-              <p className={`text-[11px] mt-0.5 leading-tight ${currentOrder === 'projects_first' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                Education &rarr; <span className={currentOrder === 'projects_first' ? 'font-semibold text-white underline' : 'font-semibold text-zinc-700'}>Projects</span> &rarr; Experience &rarr; Skills
-              </p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSetSectionOrder('experience_first')}
-            className={`p-3 rounded border text-left flex items-start space-x-3 transition-all cursor-pointer ${
-              currentOrder === 'experience_first'
-                ? 'border-black bg-zinc-900 text-white shadow-xs'
-                : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-800'
-            }`}
-          >
-            <div className={`mt-0.5 p-1.5 rounded ${currentOrder === 'experience_first' ? 'bg-white/10 text-white' : 'bg-zinc-200 text-zinc-700'}`}>
-              <Briefcase className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">Experience First</span>
-                {currentOrder === 'experience_first' && (
-                  <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded font-medium">Active</span>
-                )}
-              </div>
-              <p className={`text-[11px] mt-0.5 leading-tight ${currentOrder === 'experience_first' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                Education &rarr; <span className={currentOrder === 'experience_first' ? 'font-semibold text-white underline' : 'font-semibold text-zinc-700'}>Experience</span> &rarr; Projects &rarr; Skills
-              </p>
-            </div>
-          </button>
-        </div>
-      </div>
-
       {/* Education */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
         <div className="flex items-center justify-between">
@@ -1131,18 +1102,11 @@ export const ResumeEditor: React.FC<ResumeEditorProps> = ({
         </div>
       </div>
 
-      {/* Conditionally order Projects and Experience cards based on layout priority */}
-      {currentOrder === 'experience_first' ? (
-        <>
-          {renderExperienceCard()}
-          {renderProjectsCard()}
-        </>
-      ) : (
-        <>
-          {renderProjectsCard()}
-          {renderExperienceCard()}
-        </>
-      )}
+      {/* Projects (Stationary in Edit tab; order on resume controlled by toggle above) */}
+      {renderProjectsCard()}
+
+      {/* Professional Experience (Stationary in Edit tab; order on resume controlled by toggle above) */}
+      {renderExperienceCard()}
 
       {/* Skills Matrix & Languages */}
       <div className="bg-white p-4 rounded border border-zinc-200 space-y-3">
